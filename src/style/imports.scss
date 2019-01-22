@@ -1,0 +1,11 @@
+@function rem($px) {
+    @if (unitless($px)) {
+        @return 1rem * ($px/100);
+    } @else {
+        @return 1rem * ($px/100px);
+    }
+}
+
+$baseborder: 1px solid #e8e8e8 !default;
+$basecolor: #fe6e6e !default;
+$text-gray: #999;
