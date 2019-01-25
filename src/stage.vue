@@ -2,7 +2,7 @@
     <div class="stage">
         <div class="stage_top"></div>
         <div class="stage_map">
-            <div v-for="(line, row) in rows" :key="row">
+            <div v-for="(line, row) in table.rows" :key="row">
                 <div :class="{square: true, 'square-disable': item.isDisabled}" @click="clickSquare(row, col)"
                      v-for="(item, col) in line" :key="col">
                     {{ item | squareRender}}
@@ -12,12 +12,12 @@
         <div class="stage_bottom">
             <div class="card-list">
                 <div :class="{card: true, 'card-on':index===activeCardIndex}" @click="chooseCard(index)"
-                     v-for="(card, index) in cardList" :key="index">{{card.name}}
+                     v-for="(card, index) in player.currentCards" :key="index">{{card.name}}
                 </div>
             </div>
             <div class="stage_info">
-                <p>当前生命值：{{hp}}</p>
-                <p>当前魔力值：{{mp}}</p>
+                <p>当前生命值：{{player.hp}}</p>
+                <p>当前魔力值：{{player.mp}}</p>
             </div>
 
         </div>
@@ -27,53 +27,68 @@
 </template>
 
 <script>
+    // 实例化测试数据
+    import Player from './core/player'
+    import Table from './core/table'
+    import Card from './core/card'
 
-    import StageMap from './core/map'
+
+    let card1 = new Card({
+        name: '先驱者',
+        hp: 1,
+        cost: 1,
+        pos: null,
+        isSelf: true,
+        firstStep: 2,
+    })
+    let card2 = new Card({
+        name: '德鲁伊',
+        hp: 5,
+        cost: 3,
+        pos: null,
+        isSelf: true,
+        firstStep: 1,
+    })
+
+    let playerA = new Player({
+        cardGroup: [
+            card1,
+            card1,
+            card2
+        ]
+    })
+
+    let playerB = new Player({
+        cardGroup: [
+            card1,
+            card2,
+            card2
+        ]
+    })
+
+    let table = new Table()
+
+    table.addPlayer(playerA)
+    table.addPlayer(playerB)
+
+    table.newRound(playerA)
+
+    // end 初始化游戏双方 //
 
     export default {
         name: "stage",
         data() {
             return {
-                stageMap: null,
-                round: 1, // 游戏回合
-                mp: 3, // 玩家魔力值
-                hp: 10, // 玩家生命值
-                cardList: [{
-                    name: '先驱者',
-                    hp: 1,
-                    cost: 1,
-                    pos: null,
-                    isSelf: true,
-                    firstStep: 2,
-                }, {
-                    name: '德鲁伊',
-                    hp: 5,
-                    cost: 3,
-                    pos: null,
-                    isSelf: true,
-                    firstStep: 1,
-                }],
+                table: null,
                 activeCardIndex: -1,
-                maxStep: 1
+
+                player: playerA,// 玩家自己
+                rival: playerB,  // 对手
             }
         },
-        computed: {
-            rows() {
-                return this.stageMap.rows || [[]]
-            },
-            maxMp() {
-                return this.round + 2
-            }
-        },
+        computed: {},
         created() {
-            let col = 4,
-                row = 4
-            let stageMap = new StageMap(row, col)
-
-            this.mp = this.maxMp
-
-
-            this.stageMap = stageMap
+            this.table = table
         },
         filters: {
             squareRender(item) {
@@ -83,43 +98,41 @@
                 }
 
                 return `${currentCard.name}(${currentCard.hp})`
-
             },
         },
         methods: {
+            toast(tip) {
+                this.$layer.open({
+                    content: tip
+                    , skin: 'msg'
+                    , time: 2 //2秒后自动关闭
+                });
+            },
             // 选择一张卡片
             chooseCard(index) {
                 this.activeCardIndex = index
             },
             // 点击区块，执行相关逻辑
             clickSquare(row, col) {
+                let player = this.player
+                let pos = [row, col]
+
                 let activeCardIndex = this.activeCardIndex
                 if (activeCardIndex > -1) {
-                    let card = this.cardList[activeCardIndex]
-                    if (this.mp < card.cost) {
-                        this.activeCardIndex = -1
-                        this.$layer.open({
-                            content: '蓝量不足，无法放置'
-                            , skin: 'msg'
-                            , time: 2 //2秒后自动关闭
-                        });
-                        return
-                    }
+                    let card = player.currentCards[activeCardIndex]
 
-                    // 将卡牌放在地图上
-                    let isSuccess = this.stageMap.putCard(card, [row, col])
-                    if (isSuccess) {
-                        this.mp -= card.cost
-                        this.cardList.splice(activeCardIndex, 1)
+                    let errorMsg = this.player.putCardToTable(card, pos)
+
+                    if (errorMsg) {
+                        this.toast(errorMsg)
+                    } else {
                         this.activeCardIndex = -1
                     }
                 }
             },
             nextRound() {
-                this.stageMap.update()
+                // this.table.update()
 
-                this.round++
-                this.mp = this.maxMp
             }
         }
     }

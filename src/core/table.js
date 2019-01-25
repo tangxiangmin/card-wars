@@ -17,7 +17,7 @@ class TableCell {
         return this.currentCard === null
     }
 
-    putCard(card) {
+    collapse(card) {
         let currentCard = this.currentCard
         let isAlive = false
         if (currentCard === card) {
@@ -44,6 +44,11 @@ class TableCell {
         }
         return isAlive
     }
+
+    putCard(card) {
+        this.currentCard = card
+        card.pos = this.coord
+    }
 }
 
 class Table {
@@ -52,6 +57,9 @@ class Table {
         this.col = col
 
         this.initRows()
+
+        this.players = []
+        this.currentPlayer = null
     }
 
     initRows() {
@@ -95,49 +103,60 @@ class Table {
     }
 
     getCellByPos(pos) {
+        if (!pos) {
+            throw 'getCellByPos 无效 pos参数'
+        }
+
         let [x, y] = pos
         return this.rows[x][y]
     }
 
+    // 向棋盘上对应位置放置卡片
     putCard(card, pos) {
         let cell = this.getCellByPos(pos)
         cell.putCard(card)
-
         card.onPut(this)
+
+        // 放置后自动移动
+        let firstStep = card.firstStep
+        while (firstStep) {
+            firstStep--
+            this.moveCard(card)
+        }
     }
-    moveCard(card, step = 1) {
-        let rows = this.rows
+
+    // 向上移动卡片一步
+    moveCard(card) {
+        let originCell = this.getCellByPos(card.pos)
+        originCell.clearCurrentCard()
 
         let [row, col] = card.pos
+        let nextPos = [row - 1, col]
 
-        rows[row][col].clearCurrentCard()
+        let nextCell = this.getCellByPos(nextPos)
+        let isAlive = nextCell.collapse(card)
 
-        if (card.isSelf) {
-            if (row <= 0) {
-                console.log(`消除敌方血量${card.hp}`)
-                card = null
-                return
-            }
-            row -= step // 友军向上移动
-
-        } else {
-            if (row >= this.row - 1) {
-                console.log(`消除我方血量${card.hp}`)
-                card = null
-            }
-            row += step // 敌军向下移动
+        if (isAlive) {
+            nextCell.putCard(card)
         }
+    }
 
-        let nextSquare = rows[row][col]
-        card.pos = [row, col]
+    // 增加选手
+    addPlayer(player) {
+        player.table = this
+        this.players.push(player)
+    }
 
-        let isAlive = nextSquare.checkCollapse(card)
-        // 如果存活了，则当前行可放置
-        if (isAlive && nextSquare.isDisabled) {
-            rows[row].forEach(square => {
-                square.isDisabled = false
-            })
-        }
+    // 新回合
+    newRound(player) {
+        // 设置当前回合的选手
+        this.currentPlayer = player
+        let cards = this.getPlayerCards(player)
+
+        cards.forEach(card => {
+            this.moveCard(card)
+        })
+
     }
 }
 

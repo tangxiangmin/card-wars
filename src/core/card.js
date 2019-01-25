@@ -3,7 +3,7 @@
  */
 
 class Card {
-    constructor({name, hp, cost, pos, firstStep, player}) {
+    constructor({name, hp, cost, pos, firstStep}) {
 
         this.name = name
         this.hp = hp
@@ -13,19 +13,18 @@ class Card {
         this.firstStep = firstStep
 
         this.table = null
+        this.player = null
+    }
+
+    setPlayer(player) {
         this.player = player
     }
 
-    move(step = 1) {
-
-    }
 
     // 放置到桌面上时触发
     onPut(table) {
         this.table = table
-        while (this.firstStep--) {
-
-        }
+        // 做一些其他处理
     }
 
     // 死亡时触发
