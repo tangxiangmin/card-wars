@@ -22,9 +22,10 @@ class CardFactory {
 }
 
 class Player {
-    constructor({cardGroup}) {
+    constructor({cardGroup, userName}) {
+        this.userName = userName
         this.hp = 10 // 生命值
-        this.startMp = 3
+        this.startMp = 30
 
         this.mp = this.startMp // 魔力值
         this.round = 0 // 第几回合
@@ -71,7 +72,6 @@ class Player {
         return cell.isEmpty() && this.getFarthestBound() <= row
     }
 
-
     // 放牌
     putCardToTable(card, pos) {
         let errorMsg = ''
@@ -91,6 +91,12 @@ class Player {
         }
 
         return errorMsg
+    }
+
+    // 遭受卡牌攻击
+    underAttack(card) {
+        this.hp -= card.hp
+        card.afterDie()
     }
 
     // 结束当前回合

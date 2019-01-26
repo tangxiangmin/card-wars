@@ -7,10 +7,15 @@ class TableCell {
     constructor({coord, currentCard}) {
         this.coord = coord
         this.currentCard = currentCard
+        this.isDisable = false
     }
 
     clearCurrentCard() {
         this.currentCard = null
+    }
+
+    setDisable(isDisable) {
+        this.isDisable = isDisable
     }
 
     isEmpty() {
@@ -94,12 +99,21 @@ class Table {
 
     getPlayerCards(player) {
         let cards = []
+
         this.walkCells((cell) => {
-            if (player === cell.player) {
-                cards.push(cards)
+            let card = cell.currentCard
+            if (card && (card.player === player)) {
+                cards.push(card)
             }
         })
         return cards
+    }
+
+    getPlayerRival() {
+        let player = this.currentPlayer
+        return this.players.filter(p => {
+            return player != p
+        })[0]
     }
 
     getCellByPos(pos) {
@@ -119,32 +133,67 @@ class Table {
 
         // 放置后自动移动
         let firstStep = card.firstStep
+
         while (firstStep) {
             firstStep--
-            this.moveCard(card)
+            setTimeout(() => {
+                this.moveCard(card)
+            }, (firstStep + 1) * 500)
         }
     }
 
-    // 向上移动卡片一步
+    // 移动卡片一步
     moveCard(card) {
+        if (card.isDie) {
+            return
+        }
+
+        let step = card.dir * 1
+
         let originCell = this.getCellByPos(card.pos)
         originCell.clearCurrentCard()
 
         let [row, col] = card.pos
-        let nextPos = [row - 1, col]
+        let nextPos = [row + step, col]
 
-        let nextCell = this.getCellByPos(nextPos)
-        let isAlive = nextCell.collapse(card)
+        let isEnd = (card.dir < 0 && row + step < 0) || (card.dir > 0 && row + step >= this.row)
 
-        if (isAlive) {
-            nextCell.putCard(card)
+        if (isEnd) {
+            let rivalPlayer = this.getPlayerRival()
+            rivalPlayer.underAttack(card)
+        } else {
+            let nextCell = this.getCellByPos(nextPos)
+            let isAlive = nextCell.collapse(card)
+
+            if (isAlive) {
+                nextCell.putCard(card)
+            }
         }
+
+        this.updateCellDisable()
+    }
+
+    // 更新单元格的状态
+    updateCellDisable() {
+        let player = this.currentPlayer
+        let farStep = player.getFarthestBound()
+
+        // 更新
+        this.walkCells((cell) => {
+            let [row] = cell.coord
+            cell.setDisable(row < farStep)
+        })
     }
 
     // 增加选手
     addPlayer(player) {
+        if (this.players.length > 2) {
+            throw "最多2名选手"
+        }
+
         player.table = this
         this.players.push(player)
+
     }
 
     // 新回合
@@ -157,6 +206,7 @@ class Table {
             this.moveCard(card)
         })
 
+        this.updateCellDisable()
     }
 }
 

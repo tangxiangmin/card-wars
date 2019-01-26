@@ -5,9 +5,12 @@ import App from './App.vue'
 import './util/layer'
 import './util/need/layer.css'
 
+import './socket/index'
+
 Vue.config.productionTip = false
 Vue.prototype.$layer = window.layer
 
 new Vue({
     render: h => h(App),
 }).$mount('#app')
+

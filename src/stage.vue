@@ -1,9 +1,16 @@
 <template>
     <div class="stage">
-        <div class="stage_top"></div>
+        <div class="stage_top">
+            <div class="stage_info">
+                敌方生命值：{{rival.hp}}
+                敌方魔力值：{{rival.mp}}
+            </div>
+
+        </div>
         <div class="stage_map">
             <div v-for="(line, row) in table.rows" :key="row">
-                <div :class="{square: true, 'square-disable': item.isDisabled}" @click="clickSquare(row, col)"
+                <div :class="{square: true, 'square-disable': item.isDisable, 'square-rival' : item.currentCard && item.currentCard.dir > 0}"
+                     @click="clickSquare(row, col)"
                      v-for="(item, col) in line" :key="col">
                     {{ item | squareRender}}
                 </div>
@@ -11,15 +18,19 @@
         </div>
         <div class="stage_bottom">
             <div class="card-list">
-                <div :class="{card: true, 'card-on':index===activeCardIndex}" @click="chooseCard(index)"
-                     v-for="(card, index) in player.currentCards" :key="index">{{card.name}}
+                <div :class="{card: true, 'card-on':index===activeCardIndex}"
+                     @click="chooseCard(index)"
+                     v-for="(card, index) in player.currentCards" :key="index">
+                    {{card.name}} <br>
+                    血量：{{card.hp}} <br>
+                    消耗：{{card.cost}} <br>
+                    步数：{{card.firstStep}}
                 </div>
             </div>
             <div class="stage_info">
                 <p>当前生命值：{{player.hp}}</p>
                 <p>当前魔力值：{{player.mp}}</p>
             </div>
-
         </div>
 
         <div class="next-round" @click="nextRound">敌方回合</div>
@@ -32,38 +43,26 @@
     import Table from './core/table'
     import Card from './core/card'
 
+    import cardsFactory from './core/cards'
+    import socket from './socket/index'
 
-    let card1 = new Card({
-        name: '先驱者',
-        hp: 1,
-        cost: 1,
-        pos: null,
-        isSelf: true,
-        firstStep: 2,
-    })
-    let card2 = new Card({
-        name: '德鲁伊',
-        hp: 5,
-        cost: 3,
-        pos: null,
-        isSelf: true,
-        firstStep: 1,
-    })
+    function randomCards() {
+        return [
+            cardsFactory.createCardById(1),
+            cardsFactory.createCardById(2),
+            cardsFactory.createCardById(1),
+        ]
+    }
 
     let playerA = new Player({
-        cardGroup: [
-            card1,
-            card1,
-            card2
-        ]
+        cardGroup: randomCards(),
+        userName: 'playerA'
+
     })
 
     let playerB = new Player({
-        cardGroup: [
-            card1,
-            card2,
-            card2
-        ]
+        cardGroup: randomCards(),
+        userName: 'playerB'
     })
 
     let table = new Table()
@@ -71,10 +70,12 @@
     table.addPlayer(playerA)
     table.addPlayer(playerB)
 
+    // 第一回合开始
     table.newRound(playerA)
 
     // end 初始化游戏双方 //
 
+    let isSelf = location.href.indexOf('uid=1') > -1
     export default {
         name: "stage",
         data() {
@@ -82,13 +83,15 @@
                 table: null,
                 activeCardIndex: -1,
 
-                player: playerA,// 玩家自己
-                rival: playerB,  // 对手
+                player: isSelf ? playerA : playerB,// 玩家自己
+                rival: isSelf ? playerB : playerA,  // 对手
             }
         },
         computed: {},
         created() {
             this.table = table
+
+            this.listen()
         },
         filters: {
             squareRender(item) {
@@ -101,6 +104,20 @@
             },
         },
         methods: {
+            listen() {
+                socket.onPutCard((data) => {
+                    let {card, pos} = data
+                    pos[0] = this.table.row - pos[0] - 1
+
+                    let rivalCard = new Card(card)
+                    rivalCard.setDir(1)
+
+                    this.table.putCard(rivalCard, pos)
+
+                    // let errorMsg = this.rival.putCardToTable(new Card(card), pos)
+                    // console.log(errorMsg)
+                })
+            },
             toast(tip) {
                 this.$layer.open({
                     content: tip
@@ -111,6 +128,7 @@
             // 选择一张卡片
             chooseCard(index) {
                 this.activeCardIndex = index
+
             },
             // 点击区块，执行相关逻辑
             clickSquare(row, col) {
@@ -126,12 +144,20 @@
                     if (errorMsg) {
                         this.toast(errorMsg)
                     } else {
+                        let cardConfig = cardsFactory.getCardConfigById(card.id)
+                        let data = {
+                            card: cardConfig,
+                            pos: [row, col]
+                        }
+
+                        socket.putCard(data)
                         this.activeCardIndex = -1
                     }
                 }
             },
             nextRound() {
                 // this.table.update()
+                this.table.newRound(this.rival)
 
             }
         }
@@ -185,6 +211,7 @@
         &-on {
             background-color: #fe6e6e;
         }
+
     }
 
     .square {
@@ -203,6 +230,10 @@
         }
         &-disable {
             background-color: #f8f8f8;
+        }
+        &-rival {
+            color: red;
+
         }
     }
 

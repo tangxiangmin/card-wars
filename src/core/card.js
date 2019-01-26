@@ -3,8 +3,8 @@
  */
 
 class Card {
-    constructor({name, hp, cost, pos, firstStep}) {
-
+    constructor({id, name, hp, cost, pos, firstStep,}) {
+        this.id = id
         this.name = name
         this.hp = hp
         this.cost = cost
@@ -12,14 +12,20 @@ class Card {
         this.pos = pos || null
         this.firstStep = firstStep
 
+        this.dir = -1
+
         this.table = null
         this.player = null
+        this.isDie = false
     }
 
     setPlayer(player) {
         this.player = player
     }
 
+    setDir(dir) {
+        this.dir = dir
+    }
 
     // 放置到桌面上时触发
     onPut(table) {
@@ -28,7 +34,14 @@ class Card {
     }
 
     // 死亡时触发
-    onDied() {
+    beforeDie() {
+    }
+
+    // 死亡后
+    afterDie() {
+        this.isDie = true
+        console.log(`${this.name}死亡了`)
+
     }
 
     // 每一轮触发
