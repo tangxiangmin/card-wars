@@ -1,29 +1,13 @@
 # web-wars
 
 ## Project setup
+
 ```
 npm install
-```
 
-### Compiles and hot-reloads for development
-```
-npm run serve
-```
+# 启动服务器
+npm run server
 
-### Compiles and minifies for production
+# 启动前端开发环境
+npm run dev
 ```
-npm run build
-```
-
-### Run your tests
-```
-npm run test
-```
-
-### Lints and fixes files
-```
-npm run lint
-```
-
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).

@@ -1,7 +1,8 @@
 <template>
     <div class="stage">
+        <!--<chat></chat>-->
         <div class="stage_top">
-            <div class="stage_info">
+            <div class="stage_info" v-if="rival">
                 敌方生命值：{{rival.hp}}
                 敌方魔力值：{{rival.mp}}
             </div>
@@ -16,7 +17,7 @@
                 </div>
             </div>
         </div>
-        <div class="stage_bottom">
+        <div class="stage_bottom" v-if="player">
             <div class="card-list">
                 <div :class="{card: true, 'card-on':index===activeCardIndex}"
                      @click="chooseCard(index)"
@@ -45,6 +46,11 @@
 
     import cardsFactory from './core/cards'
     import socket from './socket/index'
+
+    import chat from './components/chat'
+
+    import urlKit from './util/urlKit'
+
 
     function randomCards() {
         return [
@@ -75,22 +81,24 @@
 
     // end 初始化游戏双方 //
 
-    let isSelf = location.href.indexOf('uid=1') > -1
     export default {
         name: "stage",
         data() {
             return {
                 table: null,
                 activeCardIndex: -1,
-
-                player: isSelf ? playerA : playerB,// 玩家自己
-                rival: isSelf ? playerB : playerA,  // 对手
+                player: null,
+                rival: null
             }
+        },
+        components: {
+            chat
         },
         computed: {},
         created() {
             this.table = table
 
+            this.init()
             this.listen()
         },
         filters: {
@@ -104,7 +112,25 @@
             },
         },
         methods: {
+            init() {
+                let uid = urlKit.getParam("uid")
+                let roomId = urlKit.getParam("roomId")
+
+                socket.enterRoom({uid, roomId})
+            },
             listen() {
+                socket.onEnterRoom((userInfo) => {
+                    let {cards, userName} = userInfo
+
+                    let cardGroup = cards.map(cardId => {
+                        return cardsFactory.createCardById(cardId)
+                    })
+
+                    this.player = new Player({cardGroup, userName})
+
+                    table.addPlayer(this.player)
+                })
+
                 socket.onPutCard((data) => {
                     let {card, pos} = data
                     pos[0] = this.table.row - pos[0] - 1
@@ -113,9 +139,6 @@
                     rivalCard.setDir(1)
 
                     this.table.putCard(rivalCard, pos)
-
-                    // let errorMsg = this.rival.putCardToTable(new Card(card), pos)
-                    // console.log(errorMsg)
                 })
             },
             toast(tip) {
