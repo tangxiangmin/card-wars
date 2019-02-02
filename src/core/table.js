@@ -25,14 +25,16 @@ class TableCell {
     collapse(card) {
         let currentCard = this.currentCard
         let isAlive = false
-        if (currentCard === card) {
+        if (currentCard) {
             // 当前位置包含有方卡牌
             if (currentCard.player === card.player) {
                 return isAlive
             } else {
                 // 两张卡牌生命值抵消
-                currentCard.hp -= card.hp
-                card.hp -= currentCard.hp
+                let hp1 = card.hp
+                let hp2 = currentCard.hp
+                currentCard.hp -= hp1
+                card.hp -= hp2
 
                 if (currentCard.hp > 0) {
                     this.currentCard = currentCard
@@ -40,6 +42,7 @@ class TableCell {
                     this.currentCard = card
                     isAlive = true
                 } else {
+                    isAlive = false
                     this.clearCurrentCard()
                 }
             }
@@ -95,6 +98,12 @@ class Table {
                 cb(cell)
             }
         }
+    }
+
+    getPlayerByUid(uid) {
+        return this.players.filter(item => {
+            return item.uid === uid
+        })[0]
     }
 
     getPlayerCards(player) {
@@ -190,10 +199,15 @@ class Table {
         if (this.players.length > 2) {
             throw "最多2名选手"
         }
-
-        player.table = this
-        this.players.push(player)
-
+        let uid = player.uid
+        let user = this.getPlayerByUid(uid)
+        if (!user) {
+            player.table = this
+            this.players.push(player)
+        } else {
+            player = user
+            // console.log(`${player.userName}用户已加入该对局`)
+        }
     }
 
     // 新回合

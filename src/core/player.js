@@ -22,10 +22,11 @@ class CardFactory {
 }
 
 class Player {
-    constructor({cardGroup, userName}) {
+    constructor({uid, cardGroup, startMp, hp, userName}) {
+        this.uid = uid
         this.userName = userName
-        this.hp = 10 // 生命值
-        this.startMp = 30
+        this.hp = hp // 生命值
+        this.startMp = startMp
 
         this.mp = this.startMp // 魔力值
         this.round = 0 // 第几回合
@@ -75,9 +76,15 @@ class Player {
     // 放牌
     putCardToTable(card, pos) {
         let errorMsg = ''
-        if (this.checkPosAvailable(pos)) {
+        let table = this.table
+
+        if (!table) {
+            errorMsg = '未加入游戏'
+        } else if (table.currentPlayer !== this) {
+            errorMsg = '非当前选手的回合，无法放牌'
+        } else if (this.checkPosAvailable(pos)) {
             if (this.mp >= card.cost) {
-                this.table.putCard(card, pos)
+                table.putCard(card, pos)
                 this.mp -= card.cost
 
                 let index = this.currentCards.indexOf(card)
@@ -99,8 +106,8 @@ class Player {
         card.afterDie()
     }
 
-    // 结束当前回合
-    newRound() {
+    // 新回合
+    resetNewRound() {
         this.round++
         this.mp = this.startMp + this.round
     }

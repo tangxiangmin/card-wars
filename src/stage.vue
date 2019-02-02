@@ -34,7 +34,9 @@
             </div>
         </div>
 
-        <div class="next-round" @click="nextRound">敌方回合</div>
+        <div :class="{'next-round-disable': table.currentPlayer !== player}" class="next-round" @click="nextRound">
+            结束回合
+        </div>
     </div>
 </template>
 
@@ -51,33 +53,11 @@
 
     import urlKit from './util/urlKit'
 
-
-    function randomCards() {
-        return [
-            cardsFactory.createCardById(1),
-            cardsFactory.createCardById(2),
-            cardsFactory.createCardById(1),
-        ]
-    }
-
-    let playerA = new Player({
-        cardGroup: randomCards(),
-        userName: 'playerA'
-
-    })
-
-    let playerB = new Player({
-        cardGroup: randomCards(),
-        userName: 'playerB'
-    })
-
     let table = new Table()
 
-    table.addPlayer(playerA)
-    table.addPlayer(playerB)
 
     // 第一回合开始
-    table.newRound(playerA)
+    window.table = table
 
     // end 初始化游戏双方 //
 
@@ -88,7 +68,8 @@
                 table: null,
                 activeCardIndex: -1,
                 player: null,
-                rival: null
+                rival: null,
+                uid: null
             }
         },
         components: {
@@ -114,31 +95,65 @@
         methods: {
             init() {
                 let uid = urlKit.getParam("uid")
+                this.uid = parseInt(uid)
                 let roomId = urlKit.getParam("roomId")
-
                 socket.enterRoom({uid, roomId})
             },
             listen() {
-                socket.onEnterRoom((userInfo) => {
-                    let {cards, userName} = userInfo
 
-                    let cardGroup = cards.map(cardId => {
-                        return cardsFactory.createCardById(cardId)
+                // 进入房间
+                socket.onEnterRoom((players) => {
+                    players.forEach((userInfo, index) => {
+                        let {cards, userName, hp, uid} = userInfo
+                        if (userName && Array.isArray(cards)) {
+                            let cardGroup = cards.map(cardId => {
+                                return cardsFactory.createCardById(cardId)
+                            })
+
+                            // 第一轮的魔力值
+                            let startMp = index === 0 ? 3 : 4
+
+                            let player = table.getPlayerByUid(uid)
+                            if (!player) {
+                                player = new Player({uid, hp, startMp, cardGroup, userName})
+                            }
+
+                            // 第一个用户就是当前用户
+                            if (userInfo.uid === this.uid) {
+                                this.player = player
+                            } else {
+                                this.rival = player
+                            }
+
+                            table.addPlayer(player)
+                            // 已经达到两人，开始游戏
+
+                            if (table.players.length === 2) {
+                                let firstPlayer = table.getPlayerByUid(players[0].uid)
+                                table.newRound(firstPlayer)
+                            }
+                        } else {
+                            this.toast('账号不存在')
+                        }
                     })
 
-                    this.player = new Player({cardGroup, userName})
-
-                    table.addPlayer(this.player)
                 })
 
+                // 对手放置卡片
                 socket.onPutCard((data) => {
                     let {card, pos} = data
                     pos[0] = this.table.row - pos[0] - 1
 
                     let rivalCard = new Card(card)
                     rivalCard.setDir(1)
+                    rivalCard.setPlayer(this.rival)
 
                     this.table.putCard(rivalCard, pos)
+                })
+                // 对手点击结束回合
+                socket.onNextRound(() => {
+                    this.player.resetNewRound()
+                    this.table.newRound(this.player)
                 })
             },
             toast(tip) {
@@ -179,9 +194,8 @@
                 }
             },
             nextRound() {
-                // this.table.update()
+                socket.nextRound()
                 this.table.newRound(this.rival)
-
             }
         }
     }
@@ -271,6 +285,9 @@
         font-size: rem(24);
         text-align: center;
         color: #fff;
+        &-disable {
+            background-color: #ccc;
+        }
     }
 
 </style>

@@ -9,6 +9,12 @@ let socket = io(`http://localhost:${config.port}`);
 
 let {EVENT} = config
 
+
+// 心跳
+setInterval(() => {
+    socket.emit(EVENT.PING);
+}, 5000)
+
 let client = {
     on(eventName, cb) {
         socket.on(eventName, cb);
@@ -18,8 +24,8 @@ let client = {
     },
 
     // 进入房间
-    enterRoom(uid) {
-        socket.emit(EVENT.ENTER_ROOM, {uid});
+    enterRoom(params) {
+        socket.emit(EVENT.ENTER_ROOM, params);
     },
     onEnterRoom(cb) {
         socket.on(EVENT.ENTER_ROOM, cb);
@@ -33,11 +39,17 @@ let client = {
     onPutCard(cb) {
         socket.on(EVENT.PUT_CARD, cb);
     },
+    nextRound(data) {
+        socket.emit(EVENT.NEXT_ROUND, data);
+    },
+    onNextRound(cb) {
+        socket.on(EVENT.NEXT_ROUND, cb);
+    },
     // 聊天
-    chat(data){
+    chat(data) {
         socket.emit(EVENT.SEND_CHAT_MESSAGE, data);
     },
-    onChat(cb){
+    onChat(cb) {
         socket.on(EVENT.RECEIVE_CHAT_MESSAGE, cb);
     }
 }

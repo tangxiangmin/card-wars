@@ -6,6 +6,14 @@ module.exports = {
         const types = ['vue-modules', 'vue', 'normal-modules', 'normal']
         types.forEach(type => addStyleResource(config.module.rule('scss').oneOf(type)))
     },
+    configureWebpack: {
+        devServer: {
+            // clientLogLevel: 'warning',
+            historyApiFallback: true,
+            hot: true,
+            inline: true,  // false为关闭热更新
+         }
+    }
 }
 
 function addStyleResource (rule) {
