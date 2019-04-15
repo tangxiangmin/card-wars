@@ -1,6 +1,7 @@
 /**
  * 2019/1/21 下午5:59
  */
+import cardsFactory from './cards'
 
 class CardFactory {
     constructor(cardGroup) {
@@ -11,10 +12,10 @@ class CardFactory {
     drawCards(player, times) {
         let randomCards = this.cardGroup.sort(() => {
             return .5 - Math.random();
-        }).slice(0, times)
-
-        randomCards.forEach(card => {
+        }).slice(0, times).map(cardId => {
+            let card = cardsFactory.createCardById(cardId)
             card.setPlayer(player)
+            return card
         })
 
         return randomCards
@@ -110,6 +111,8 @@ class Player {
     resetNewRound() {
         this.round++
         this.mp = this.startMp + this.round
+
+        this.drawCards()
     }
 }
 

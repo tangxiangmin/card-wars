@@ -106,9 +106,7 @@
                     players.forEach((userInfo, index) => {
                         let {cards, userName, hp, uid} = userInfo
                         if (userName && Array.isArray(cards)) {
-                            let cardGroup = cards.map(cardId => {
-                                return cardsFactory.createCardById(cardId)
-                            })
+                            let cardGroup = cards
 
                             // 第一轮的魔力值
                             let startMp = index === 0 ? 3 : 4

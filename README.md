@@ -1,6 +1,10 @@
 # web-wars
 
-## Project setup
+仿战棋游戏StormBound的Vue版本实现
+* Vue
+* socket.io
+
+## 开发步骤
 
 ```
 npm install

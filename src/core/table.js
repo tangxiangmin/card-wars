@@ -208,6 +208,7 @@ class Table {
             player = user
             // console.log(`${player.userName}用户已加入该对局`)
         }
+        return player
     }
 
     // 新回合
