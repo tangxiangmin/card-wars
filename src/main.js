@@ -2,8 +2,7 @@ import Vue from 'vue'
 import App from './App.vue'
 
 // 引入layer-mobile
-import './util/layer'
-import './util/need/layer.css'
+
 
 import './socket/index'
 

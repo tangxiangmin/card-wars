@@ -19,7 +19,7 @@
         </div>
         <div class="stage_bottom" v-if="player">
             <div class="card-list">
-                <div :class="{card: true, 'card-on':index===activeCardIndex}"
+                <div :class="{card: true, 'card-on':index===activeCardIndex, 'card-disable': player && card.cost > player.mp}"
                      @click="chooseCard(index)"
                      v-for="(card, index) in player.currentCards" :key="index">
                     {{card.name}} <br>
@@ -37,6 +37,7 @@
         <div :class="{'next-round-disable': table.currentPlayer !== player}" class="next-round" @click="nextRound">
             结束回合
         </div>
+        <div class="float-btn" @click="close"></div>
     </div>
 </template>
 
@@ -55,27 +56,36 @@
 
     let table = new Table()
 
-
     // 第一回合开始
     window.table = table
 
     // end 初始化游戏双方 //
-
     export default {
         name: "stage",
         data() {
             return {
                 table: null,
                 activeCardIndex: -1,
-                player: null,
-                rival: null,
-                uid: null
+                uid: null,
             }
         },
         components: {
             chat
         },
-        computed: {},
+        computed: {
+            player() {
+                let target = table.players.filter(player => {
+                    return player.uid === this.uid
+                })
+                return target && target[0]
+            },
+            rival() {
+                let target = table.players.filter(player => {
+                    return player.uid !== this.uid
+                })
+                return target && target[0]
+            }
+        },
         created() {
             this.table = table
 
@@ -93,6 +103,9 @@
             },
         },
         methods: {
+            close() {
+                socket.close()
+            },
             init() {
                 let uid = urlKit.getParam("uid")
                 this.uid = parseInt(uid)
@@ -116,25 +129,23 @@
                                 player = new Player({uid, hp, startMp, cardGroup, userName})
                             }
 
-                            // 第一个用户就是当前用户
-                            if (userInfo.uid === this.uid) {
-                                this.player = player
-                            } else {
-                                this.rival = player
-                            }
-
                             table.addPlayer(player)
-                            // 已经达到两人，开始游戏
-
-                            if (table.players.length === 2) {
-                                let firstPlayer = table.getPlayerByUid(players[0].uid)
-                                table.newRound(firstPlayer)
-                            }
                         } else {
                             this.toast('账号不存在')
                         }
                     })
 
+                    // 已经达到两人，开始游戏
+                    if (table.players.length === 2) {
+                        let firstPlayer = table.getPlayerByUid(players[0].uid)
+                        table.newRound(firstPlayer, this.player)
+                    }
+                })
+
+                socket.onUserLeaveRoom((data) => {
+                    let {user} = data
+                    table.removePlayer(user)
+                    this.toast(`${user.userName}离开房间`)
                 })
 
                 // 对手放置卡片
@@ -151,7 +162,7 @@
                 // 对手点击结束回合
                 socket.onNextRound(() => {
                     this.player.resetNewRound()
-                    this.table.newRound(this.player)
+                    table.newRound(this.player, this.player)
                 })
             },
             toast(tip) {
@@ -164,7 +175,6 @@
             // 选择一张卡片
             chooseCard(index) {
                 this.activeCardIndex = index
-
             },
             // 点击区块，执行相关逻辑
             clickSquare(row, col) {
@@ -193,8 +203,8 @@
             },
             nextRound() {
                 socket.nextRound()
-                this.table.newRound(this.rival)
-            }
+                table.newRound(this.rival, this.player)
+            },
         }
     }
 </script>
@@ -247,6 +257,10 @@
             background-color: #fe6e6e;
         }
 
+        &-disable {
+            background-color: #444;
+        }
+
     }
 
     .square {
@@ -288,4 +302,13 @@
         }
     }
 
+    .float-btn {
+        width: rem(100);
+        height: rem(100);
+        background-color: red;
+        position: fixed;
+        right: 0;
+        top: 0;
+        border-radius: 50%;
+    }
 </style>

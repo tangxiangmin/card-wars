@@ -17,6 +17,12 @@ module.exports = {
                 hp: 12,
                 cards: [1, 2, 3, 4, 5, 6,],
                 userName: 'PlayerB'
+            },
+            3: {
+                uid: 3,
+                hp: 4,
+                cards: [1, 2, 3, 4, 5, 6,],
+                userName: 'PlayerC'
             }
         }
         return map[uid]

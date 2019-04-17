@@ -9,6 +9,7 @@
     "server": "supervisor -harmony server/app.js"
   },
   "dependencies": {
+    "express": "^4.16.4",
     "log4js": "^4.0.1",
     "socket.io": "^2.2.0",
     "socket.io-client": "^2.2.0",

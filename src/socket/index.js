@@ -5,15 +5,18 @@
 import io from 'socket.io-client'
 import config from '../../server/config'
 
-let socket = io(`http://localhost:${config.port}`);
+let socket = io(`http://${location.hostname}:${config.port}`);
 
 let {EVENT} = config
-
-
 // 心跳
 setInterval(() => {
     socket.emit(EVENT.PING);
 }, 5000)
+
+socket.on("test", function (data) {
+    console.log('listen test from server', data)
+})
+
 
 let client = {
     on(eventName, cb) {
@@ -23,13 +26,20 @@ let client = {
         socket.emit(eventName, data);
     },
 
+    close() {
+        socket.close(true);
+    },
+
     // 进入房间
     enterRoom(params) {
         socket.emit(EVENT.ENTER_ROOM, params);
     },
     onEnterRoom(cb) {
         socket.on(EVENT.ENTER_ROOM, cb);
-
+    },
+    // 离开房间
+    onUserLeaveRoom(cb) {
+        socket.on(EVENT.LEAVE_ROOM, cb);
     },
     // 放置图片
     putCard(data) {

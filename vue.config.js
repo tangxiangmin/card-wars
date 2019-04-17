@@ -11,7 +11,7 @@ module.exports = {
             // clientLogLevel: 'warning',
             historyApiFallback: true,
             hot: true,
-            inline: true,  // false为关闭热更新
+            inline: false,  // false为关闭热更新
          }
     }
 }

@@ -179,12 +179,11 @@ class Table {
             }
         }
 
-        this.updateCellDisable()
+        this.updateCellDisable( this.currentPlayer)
     }
 
     // 更新单元格的状态
-    updateCellDisable() {
-        let player = this.currentPlayer
+    updateCellDisable(player) {
         let farStep = player.getFarthestBound()
 
         // 更新
@@ -211,8 +210,19 @@ class Table {
         return player
     }
 
+    removePlayer(player) {
+        let players = this.players
+
+        for (let i = 0; i < players.length; ++i) {
+            if (players[i].uid === player.uid) {
+                players.splice(i, 1)
+                break
+            }
+        }
+    }
+
     // 新回合
-    newRound(player) {
+    newRound(player, self) {
         // 设置当前回合的选手
         this.currentPlayer = player
         let cards = this.getPlayerCards(player)
@@ -221,7 +231,7 @@ class Table {
             this.moveCard(card)
         })
 
-        this.updateCellDisable()
+        this.updateCellDisable(self)
     }
 }
 
