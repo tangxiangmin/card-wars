@@ -1,0 +1,30 @@
+.page {
+    padding: rem(20);
+    &_tt {
+        font-size: rem(40);
+        margin-bottom: rem(40);
+    }
+}
+
+.mt-base {
+    margin-top: rem(40);
+}
+
+.btn {
+    font-size: rem(32);
+    border-radius: rem(8);
+    padding: 0 rem(8);
+    line-height: 2;
+    border: 1px solid #dedede;
+    &-full {
+        display: block;
+        width: 100%;
+        font-size: rem(36);
+    }
+}
+
+.bg-base {
+    background-color: $basecolor;
+    color: #fff;
+    border: none;
+}

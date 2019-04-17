@@ -3,7 +3,7 @@
  */
 
 import io from 'socket.io-client'
-import config from '../../server/config'
+import config from '../config'
 
 let socket = io(`http://${location.hostname}:${config.port}`);
 

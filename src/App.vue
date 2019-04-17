@@ -1,23 +1,18 @@
 <template>
     <div id="app">
-        <Stage></Stage>
+        <router-view></router-view>
     </div>
 </template>
 
 <script>
-    import Stage from "./stage"
-
     export default {
         name: 'app',
-        components: {
-            Stage
-        }
+
     }
 </script>
 
 <style lang="scss">
     /* ---rem--- */
-
     html {
         font-size: calc((100vw / 750) * 100);
     }

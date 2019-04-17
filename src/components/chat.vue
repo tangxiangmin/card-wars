@@ -14,7 +14,7 @@
 </template>
 
 <script>
-    import client from '../socket/index'
+    // import client from '../socket/index'
     import urlKit from '../util/urlKit'
 
     export default {
