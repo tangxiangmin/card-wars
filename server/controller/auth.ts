@@ -2,8 +2,8 @@
  * 2019/4/17 下午9:58
  */
 
-let userModel = require('../model/user')
-let Token = require('../util/token')
+import userModel from '../model/user'
+import Token from '../util/jwt'
 
 function login({uid, account, password}: {
     uid: number,
@@ -11,7 +11,7 @@ function login({uid, account, password}: {
     password: string
 }) {
     let expires = Date.now() + 24 * 60 * 60 * 1000;
-    const token = Token.encode({account, password, expires});
+    const token = Token.encode({uid, account, expires});
 
     // 设置token
     return {
@@ -21,9 +21,21 @@ function login({uid, account, password}: {
 }
 
 export default {
+    async auth(ctx: any, next: any) {
+        let token = ctx.request.header['x-token'];
+        let uid
+        if (token && (uid = Token.verify(token))) {
+            ctx.uid = uid
+            await next()
+        } else {
+            ctx.body = {
+                code: 401,
+                message: "token验证失败，请重新登陆"
+            }
+        }
+    },
     async login(ctx: any) {
         let {account, password} = ctx.request.body;
-        console.log(account, password)
 
         if (!account || !password) {
             return ctx.body = {
@@ -33,13 +45,11 @@ export default {
         }
 
         // 校验账号密码
-        let uid = await userModel.checkAccount({account, password})
-        console.log(uid)
+        let uid = await userModel.checkAccount(account, password)
         // 登录
         if (uid) {
             let result: { uid: number, token: string } = login({uid, account, password})
-            // let user = await userModel.getUserInfoByUid(uid)
-            console.log(result)
+
             ctx.statusCode = 200
             ctx.body = {
                 message: '登陆成功',
@@ -49,4 +59,14 @@ export default {
             ctx.statusCode = 401
         }
     },
+
+    async userInfo(ctx: any) {
+        let user = await userModel.getUserInfoByUid(ctx.uid)
+        if (user) {
+            ctx.body = {
+                message: 'success',
+                data: user
+            }
+        }
+    }
 }

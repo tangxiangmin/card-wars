@@ -6,14 +6,16 @@ let jwt = require("jwt-simple");
 let jwtSecret = "web wars";
 
 const Token = {
-    encode(params) {
+    encode(params: any) {
         return jwt.encode(params, jwtSecret);
     },
-    verify(token) {
+    verify(token: string) {
         let data = jwt.decode(token, jwtSecret);
-        let { expires } = data;
-        return expires > Date.now();
+        let {expires, uid} = data;
+        if (expires > Date.now()) {
+            return uid
+        }
     }
 }
 
-module.exports = Token
+export default Token

@@ -16,17 +16,23 @@
 </template>
 
 <script>
+    import {login} from '../api'
+
     export default {
         name: "login",
         data() {
             return {
-                account: '',
-                password: ''
+                account: 'root',
+                password: 'root'
             }
         },
         methods: {
-            submit() {
-                console.log(this.$data)
+            async submit() {
+                let {account, password} = this
+                let token = await login({account, password})
+                if (token) {
+                    this.$router.replace('/')
+                }
             }
         }
     }
