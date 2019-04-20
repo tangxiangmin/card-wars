@@ -1,13 +1,14 @@
 <template>
     <div class="page index">
         <div class="user" v-if="userInfo">
-            <span class="user_lv">等级12</span>
-            <span class="user_nickname">{{userInfo.userName}}</span>
+            <span class="user_lv">等级{{userInfo.hp}}</span>
+            <span class="user_nickname">{{userInfo.username}}</span>
         </div>
+
         <h1 class="page_tt">Web Wars</h1>
 
         <div class="nav">
-            <button class="btn">开始游戏</button>
+            <button class="btn" @click="play">开始游戏</button>
             <button class="btn">查看排行</button>
         </div>
         <div class="menu">
@@ -19,7 +20,7 @@
 </template>
 
 <script>
-    import {getUserInfo} from '../api'
+    import {getUserInfo, createRoom} from '../api'
 
     export default {
         name: "index",
@@ -33,6 +34,25 @@
                 this.userInfo = res.data
             }).catch(e => {
             })
+        },
+        methods: {
+            play() {
+                createRoom().then(res => {
+                    let {data} = res
+                    if (data) {
+                        let {roomId} = data
+
+                        this.$router.push({
+                            path: '/game',
+                            query: {
+                                roomId
+                            }
+                        })
+                    } else {
+                        this.$toast('创建房间失败')
+                    }
+                })
+            }
         }
     }
 </script>

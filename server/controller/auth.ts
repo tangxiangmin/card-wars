@@ -4,11 +4,11 @@
 
 import userModel from '../model/user'
 import Token from '../util/jwt'
+import {Context} from "koa";
 
-function login({uid, account, password}: {
+function login({uid, account}: {
     uid: number,
     account: string,
-    password: string
 }) {
     let expires = Date.now() + 24 * 60 * 60 * 1000;
     const token = Token.encode({uid, account, expires});
@@ -21,20 +21,22 @@ function login({uid, account, password}: {
 }
 
 export default {
-    async auth(ctx: any, next: any) {
+    async auth(ctx: Context, next: Function) {
         let token = ctx.request.header['x-token'];
         let uid
         if (token && (uid = Token.verify(token))) {
             ctx.uid = uid
             await next()
         } else {
+            ctx.status = 401
             ctx.body = {
                 code: 401,
                 message: "token验证失败，请重新登陆"
             }
         }
     },
-    async login(ctx: any) {
+    async login(ctx: Context) {
+        // @ts-ignore
         let {account, password} = ctx.request.body;
 
         if (!account || !password) {
@@ -48,7 +50,7 @@ export default {
         let uid = await userModel.checkAccount(account, password)
         // 登录
         if (uid) {
-            let result: { uid: number, token: string } = login({uid, account, password})
+            let result: { uid: number, token: string } = login({uid, account})
 
             ctx.statusCode = 200
             ctx.body = {
@@ -60,7 +62,7 @@ export default {
         }
     },
 
-    async userInfo(ctx: any) {
+    async userInfo(ctx: Context) {
         let user = await userModel.getUserInfoByUid(ctx.uid)
         if (user) {
             ctx.body = {

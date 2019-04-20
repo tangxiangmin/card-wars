@@ -37,7 +37,6 @@ let playerB = new Player([
     card2
 ])
 
-
 let table = new Table()
 
 playerA.joinGame(table)

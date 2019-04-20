@@ -1,19 +1,44 @@
+import user from "./model/user";
+
 let logger = require('./util/logger')
 
 let config = require('../src/config')
-let model = require('./model/index')
+import Token from './util/jwt'
+
+import roomModel from './model/room'
+import userModel from './model/user'
+
+let {EVENT} = config
 
 export default (server: any) => {
-
     let io = require('socket.io')(server);
+
+    // 鉴权中间件
+    io.use(function (socket: any, next: any) {
+        var query = socket.request._query;
+        let token = query.token
+        let uid
+
+        if (uid = Token.verify(token)) {
+            socket.uid = uid
+        }
+
+        next()
+    });
 
     // ====相关事件==== //
     io.on('connect', function (socket: any) {
-        let {EVENT} = config
+        if (!socket.uid) {
+            socket.emit(EVENT.INVALID_ACCESS_ERR)
+            return
+        }
 
+        logger.info('socket uid:', socket.uid, '进入房间')
+
+        // 断开连接
         socket.on('disconnect', function () {
             let {user} = socket
-            logger.info(`${user.userName}离开房间`);
+            logger.info(`${user && user.userName}离开房间`);
 
             socket.broadcast.emit(EVENT.LEAVE_ROOM, {
                 user: socket.user
@@ -23,22 +48,22 @@ export default (server: any) => {
         // 进入房间
         socket.on(EVENT.ENTER_ROOM, function (data: any) {
             let {uid, roomId} = data
-            let userInfo = model.getUserInfo(uid)
+            let userInfo = userModel.getUserInfoByUid(uid)
             if (userInfo) {
                 socket.user = userInfo
                 try {
-                    model.addRoomPlayer(roomId, userInfo)
-                    let users = model.getRoomPlayers(roomId)
+                    roomModel.addUserToRoom(roomId, userInfo)
+                    let users = roomModel.getRoomUsers(roomId)
+
                     if (users.length <= 2) {
-                        logger.info(`uid为：${uid}进入房间${roomId}`);
                         io.emit(EVENT.ENTER_ROOM, users);
                     } else {
                         logger.info(`uid为：${uid}进入房间${roomId}，房间人数超过限制,users：${users}`);
                     }
-                } catch (e) {
-                    logger.error(e)
-                }
 
+                } catch (e) {
+                    logger.error(e);
+                }
             } else {
                 logger.info(`找不到uid为：${uid}的用户信息`);
             }

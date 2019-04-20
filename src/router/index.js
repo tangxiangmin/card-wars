@@ -9,12 +9,12 @@ Vue.use(Router)
 
 import Login from '../pages/login'
 import Index from '../pages/index'
-import Stage from '../pages/stage'
+import Game from '../pages/game/index'
 
 const routes = [
     {path: '/login', component: Login},
     {path: '/', component: Index},
-    {path: '/stage', component: Stage},
+    {path: '/game', component: Game},
 ]
 
 export default new Router({

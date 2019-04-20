@@ -3,9 +3,13 @@
  */
 
 import io from 'socket.io-client'
+import auth from './auth'
+
 import config from '../config'
 
-let socket = io(`http://${location.hostname}:${config.port}`);
+let socket = io(`http://${location.hostname}:${config.port}`, {
+    query: 'token=' + auth.getToken()
+});
 
 let {EVENT} = config
 // 心跳
@@ -13,12 +17,15 @@ setInterval(() => {
     socket.emit(EVENT.PING);
 }, 5000)
 
-socket.on("test", function (data) {
-    console.log('listen test from server', data)
+// 登录失败
+socket.on(EVENT.INVALID_ACCESS_ERR, () => {
+    console.log('socket 链接鉴权失败，请重新登录')
+    // socket.close(true)
 })
 
-
+// 对外暴露的事件接口
 let client = {
+    // 基础api
     on(eventName, cb) {
         socket.on(eventName, cb);
     },
@@ -29,8 +36,10 @@ let client = {
     close() {
         socket.close(true);
     },
-
-    // 进入房间
+    onClose(cb) {
+        socket.on("disconnect", cb)
+    },
+    // 相关接口
     enterRoom(params) {
         socket.emit(EVENT.ENTER_ROOM, params);
     },

@@ -6,10 +6,14 @@ import axios from 'axios'
 import auth from './auth'
 
 axios.defaults.baseURL = '//localhost:3000/api'
+import router from '../router'
 
 axios.interceptors.request.use(
     config => {
-        config.headers['X-Token'] = auth.getToken()
+        let token = auth.getToken()
+        if (token) {
+            config.headers['X-Token'] = auth.getToken()
+        }
 
         return config;
     },
@@ -19,12 +23,17 @@ axios.interceptors.request.use(
 );
 axios.interceptors.response.use(
     res => {
-
         if (res && res.status === 200) {
             return res.data;
         }
     },
     err => {
+        let response = err.response
+
+        if (response.status === 401) {
+            router.push('/login')
+        }
+
         return Promise.reject(err);
     }
 );
@@ -47,4 +56,10 @@ export const login = ({account, password}) => {
 export const getUserInfo = () => {
     let url = '/userInfo'
     return axios.get(url)
+}
+
+// 创建房间
+export const createRoom = () => {
+    let url = '/createRoom'
+    return axios.post(url)
 }

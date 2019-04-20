@@ -11,9 +11,9 @@ try {
             host: '127.0.0.1',
             user: 'root',
             password: 'happyday',
-            database: 'duanzi'
+            database: 'webwar'
         })
-        console.log('The mysql is connection!')
+        console.log('The mysql is connected!')
     })()
 } catch (e) {
     global.logger.error("mysql连接失败", e)

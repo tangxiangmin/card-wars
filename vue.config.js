@@ -12,16 +12,16 @@ module.exports = {
             historyApiFallback: true,
             hot: true,
             inline: false,  // false为关闭热更新
-         }
+        }
     }
 }
 
-function addStyleResource (rule) {
+function addStyleResource(rule) {
     rule.use('style-resource')
         .loader('style-resources-loader')
         .options({
             patterns: [
-                path.resolve(__dirname, './src/style/imports.scss'),
+                path.resolve(__dirname, './src/assets/imports.scss'),
             ],
         })
 }

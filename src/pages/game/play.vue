@@ -43,16 +43,16 @@
 
 <script>
     // 实例化测试数据
-    import Player from '../core/player'
-    import Table from '../core/table'
-    import Card from '../core/card'
+    import Player from '../../core/player'
+    import Table from '../../core/table'
+    import Card from '../../core/card'
 
-    import cardsFactory from '../core/cards'
+    import cardsFactory from '../../core/cards'
     // import socket from '../socket/index'
 
-    import chat from '../components/chat'
+    import chat from '../../components/chat'
 
-    import urlKit from '../util/urlKit'
+    import urlKit from '../../util/urlKit'
 
     let table = new Table()
 
