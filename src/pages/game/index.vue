@@ -7,24 +7,35 @@
     import waitPage from './wait'
     import playPage from './play'
 
+    import socket from '../../api/socket'
+
     export default {
         name: "game-index",
         data() {
             return {
-                roomStatus: ROOM_STATUS.WAIT
+                roomStatus: ROOM_STATUS.WAIT,
+                users: []
             }
+        },
+        created() {
+            socket.onReady((users) => {
+                console.log('ready ', users)
+                this.users = users
+                this.roomStatus = ROOM_STATUS.PLAY
+            })
         },
         render(h) {
             let {roomStatus} = this
 
-            let pageComponent
             if (roomStatus === ROOM_STATUS.WAIT) {
-                pageComponent = waitPage
+                return h(waitPage)
             } else if (roomStatus === ROOM_STATUS.PLAY) {
-                pageComponent = playPage
+                return h(playPage, {
+                    props: {
+                        users: this.users
+                    }
+                })
             }
-
-            return h(pageComponent)
         }
     }
 </script>

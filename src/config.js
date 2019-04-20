@@ -8,6 +8,7 @@ const EVENT = {
 
     // 游戏
     ENTER_ROOM: 'ENTER_ROOM',
+    GAME_READY: 'GAME_READY',
     PUT_CARD: 'PUT_CARD_12',
 
     NEXT_ROUND: 'NEXT_ROUND',

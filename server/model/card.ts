@@ -1,11 +1,7 @@
-/**
- * 2019/1/26 下午9:54
- */
-
-import Card from './card'
+import Card from "../core/card";
 
 
-let createCardTemp = (id, name, hp, cost, firstStep) => {
+let createCardTemp = (id: number, name: string, hp: number, cost: number, firstStep: number): object => {
     return {
         id,
         name,
@@ -16,12 +12,23 @@ let createCardTemp = (id, name, hp, cost, firstStep) => {
     }
 }
 export default {
-    createCardById(cardId) {
-        let config = this.getCardConfigById(cardId)
-        return new Card(config)
+    createCardById(cardId: number) {
+        let {
+            id,
+            name,
+            hp,
+            cost,
+            firstStep,
+        } = this.getCardConfigById(cardId)
+        return new Card(id,
+            name,
+            hp,
+            cost,
+            null,
+            firstStep,)
     },
-    getCardConfigById(cardId) {
-        let map = {
+    getCardConfigById(cardId: number) {
+        let map: any = {
             1: createCardTemp(1, '先驱者', 1, 1, 2),
             2: createCardTemp(2, '德鲁伊', 5, 3, 1),
             3: createCardTemp(3, '新兵', 1, 1, 1),

@@ -6,7 +6,8 @@
     "dev": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "server": "nodemon --watch 'server/**/*' -e ts,tsx --exec ts-node ./server/server.ts"
+    "server": "nodemon --watch 'server/**/*' -e ts,tsx --exec ts-node ./server/server.ts",
+    "test": "mocha"
   },
   "dependencies": {
     "@types/koa": "^2.0.48",
@@ -24,15 +25,20 @@
     "vue-router": "^3.0.6"
   },
   "devDependencies": {
+    "@types/chai": "^4.1.7",
+    "@types/mocha": "^5.2.6",
     "@types/node": "^7.0.60",
     "@vue/cli-plugin-babel": "^3.3.0",
     "@vue/cli-plugin-eslint": "^3.3.0",
     "@vue/cli-service": "^3.6.0",
     "babel-eslint": "^10.0.1",
+    "chai": "^4.2.0",
     "eslint": "^5.8.0",
     "eslint-plugin-vue": "^5.0.0",
+    "mocha": "^6.1.4",
     "node-sass": "^4.11.0",
     "nodemon": "^1.18.11",
+    "nyc": "^14.0.0",
     "sass-loader": "^7.1.0",
     "start-server-webpack-plugin": "^2.2.5",
     "style-resources-loader": "^1.2.1",

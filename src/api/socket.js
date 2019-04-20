@@ -50,6 +50,10 @@ let client = {
     onUserLeaveRoom(cb) {
         socket.on(EVENT.LEAVE_ROOM, cb);
     },
+    // 房间内两个玩家准备就绪
+    onReady(cb) {
+        socket.on(EVENT.GAME_READY, cb);
+    },
     // 放置图片
     putCard(data) {
         socket.emit(EVENT.PUT_CARD, data);

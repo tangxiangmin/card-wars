@@ -1,31 +1,50 @@
 /**
  * 2019/1/21 下午5:59
  */
-import cardsFactory from './cards'
+
+import cardModel from '../model/card'
+import Card from "./card";
+import Table, {userInfo} from "./table";
 
 class CardFactory {
-    constructor(cardGroup) {
+    cardGroup: number[]
+    drawRecord: Card[] // todo 抽牌记录
+
+    constructor(cardGroup: number[]) {
         this.cardGroup = cardGroup // 拥有的牌组
     }
 
     // 随机生成times张牌
-    drawCards(player, times) {
-        let randomCards = this.cardGroup.sort(() => {
+    drawCards(player: Player, times: number) {
+        return this.cardGroup.sort(() => {
             return .5 - Math.random();
         }).slice(0, times).map(cardId => {
-            let card = cardsFactory.createCardById(cardId)
+            let card = cardModel.createCardById(cardId)
             card.setPlayer(player)
             return card
         })
-
-        return randomCards
     }
 }
 
 class Player {
-    constructor({uid, cardGroup, startMp, hp, userName}) {
+    uid: number
+    startMp: number
+    hp: number
+    username: string
+    mp: number
+    round: number
+    table: Table
+    maxCardNum: 4
+    cardFactory: CardFactory
+    currentCards: Array<Card>
+    _userInfo: userInfo
+
+    constructor(user: userInfo, startMp: number) {
+        this._userInfo = user
+        let {uid, username, hp, cardGroup} = this._fromUserInfo(user)
+
         this.uid = uid
-        this.userName = userName
+        this.username = username
         this.hp = hp // 生命值
         this.startMp = startMp
 
@@ -43,9 +62,21 @@ class Player {
         this.drawCards()
     }
 
+    _fromUserInfo(user: userInfo) {
+        let {cards, username, hp, id} = user
+        let cardGroup = cards.split(',').map(id => parseInt(id, 10))
+
+        return {
+            uid: id, cardGroup, hp, username: username
+        }
+    }
+
     // 获取最远可移动的距离
     getFarthestBound() {
         let table = this.table
+        if (!table) {
+            throw new Error('未加入任何游戏')
+        }
         let tableCards = table.getPlayerCards(this)
         let firstCard = tableCards[0]
 
@@ -61,12 +92,32 @@ class Player {
     // 抽牌，补充剩余的牌
     drawCards() {
         let leftNum = this.maxCardNum - this.currentCards.length
-        let cards = this.cardFactory.drawCards(this, leftNum)
-        this.currentCards = this.currentCards.concat(cards)
+
+        if (leftNum > 0) {
+            let cards = this.cardFactory.drawCards(this, leftNum)
+            this.currentCards = this.currentCards.concat(cards)
+        }
     }
 
-    // 检测该单元格是否可放置
-    checkPosAvailable(pos) {
+    // 弃牌
+    throwCard(card: Card) {
+        let index = this.currentCards.indexOf(card)
+        if (index > -1) {
+            this.currentCards.splice(index, 1)
+            return card
+        }
+    }
+
+    // 随机弃牌
+    randomThrowCard() {
+        let len = this.currentCards.length
+        let randomIndex = Math.floor(Math.random() * len)
+        let card = this.currentCards[randomIndex]
+        return this.throwCard(card)
+    }
+
+    // 检测玩家在某个单元格是否可放置
+    checkPosAvailable(pos: number[]) {
         let table = this.table
         let cell = table.getCellByPos(pos)
         let [row] = pos
@@ -75,14 +126,14 @@ class Player {
     }
 
     // 放牌
-    putCardToTable(card, pos) {
+    putCardToTable(card: Card, pos: number[]) {
         let errorMsg = ''
         let table = this.table
 
         if (!table) {
-            errorMsg = '未加入游戏'
+            throw new Error('未加入游戏')
         } else if (table.currentPlayer !== this) {
-            errorMsg = '非当前选手的回合，无法放牌'
+            throw new Error('非当前选手的回合')
         } else if (this.checkPosAvailable(pos)) {
             if (this.mp >= card.cost) {
                 table.putCard(card, pos)
@@ -92,17 +143,17 @@ class Player {
                 this.currentCards.splice(index, 1)
 
             } else {
-                errorMsg = 'Player: 蓝量不足'
+                throw new Error('mp值不足')
             }
         } else {
-            errorMsg = 'Player: 当前位置无法放置'
+            throw new Error('当前位置无法放置')
         }
 
         return errorMsg
     }
 
     // 遭受卡牌攻击
-    underAttack(card) {
+    underAttack(card: Card) {
         this.hp -= card.hp
         card.afterDie()
     }

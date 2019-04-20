@@ -3,6 +3,9 @@
  */
 
 let mysql = require('./mysql')
+
+
+
 export default {
     async checkAccount(account: string, password: string) {
         let conn = await mysql.getConnection()

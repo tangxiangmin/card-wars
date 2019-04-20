@@ -35,10 +35,11 @@ export default (server: any) => {
 
         logger.info('socket uid:', socket.uid, '进入房间')
 
+        let uid = socket.uid
         // 断开连接
         socket.on('disconnect', function () {
-            let {user} = socket
-            logger.info(`${user && user.userName}离开房间`);
+            // let {user} = socket
+            logger.info(`${socket.uid}离开房间`);
 
             socket.broadcast.emit(EVENT.LEAVE_ROOM, {
                 user: socket.user
@@ -46,21 +47,19 @@ export default (server: any) => {
         });
 
         // 进入房间
-        socket.on(EVENT.ENTER_ROOM, function (data: any) {
-            let {uid, roomId} = data
-            let userInfo = userModel.getUserInfoByUid(uid)
+        socket.on(EVENT.ENTER_ROOM, async function (data: any) {
+            let {roomId} = data
+
+            let userInfo = await userModel.getUserInfoByUid(uid)
             if (userInfo) {
                 socket.user = userInfo
                 try {
                     roomModel.addUserToRoom(roomId, userInfo)
                     let users = roomModel.getRoomUsers(roomId)
 
-                    if (users.length <= 2) {
-                        io.emit(EVENT.ENTER_ROOM, users);
-                    } else {
-                        logger.info(`uid为：${uid}进入房间${roomId}，房间人数超过限制,users：${users}`);
+                    if (users.length === 2) {
+                        io.emit(EVENT.GAME_READY, users);
                     }
-
                 } catch (e) {
                     logger.error(e);
                 }

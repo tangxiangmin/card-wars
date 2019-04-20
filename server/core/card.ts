@@ -1,9 +1,22 @@
 /**
  * 2019/1/17 上午8:50
  */
+import Table from "./table";
+import Player from "./player";
 
 class Card {
-    constructor({id, name, hp, cost, pos, firstStep,}) {
+    id: number
+    name: string
+    hp: number
+    cost: number
+    pos: number[]
+    firstStep: number
+    dir: number // todo enum
+    table: Table
+    player: Player
+    isDie: boolean
+
+    constructor(id: number, name: string, hp: number, cost: number, pos: number[], firstStep: number) {
         this.id = id
         this.name = name
         this.hp = hp
@@ -19,16 +32,16 @@ class Card {
         this.isDie = false
     }
 
-    setPlayer(player) {
+    setPlayer(player: Player) {
         this.player = player
     }
 
-    setDir(dir) {
+    setDir(dir: number) {
         this.dir = dir
     }
 
     // 放置到桌面上时触发
-    onPut(table) {
+    onPut(table: Table) {
         this.table = table
         // 做一些其他处理
     }

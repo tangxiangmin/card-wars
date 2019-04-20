@@ -15,4 +15,7 @@ npm run dev:server
 
 # 启动前端开发环境
 npm run dev
+
+# 单元测试
+npm run test 
 ```

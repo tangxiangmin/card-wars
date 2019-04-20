@@ -29,7 +29,7 @@ export default {
             throw new Error(`roomId:${roomId}房间人数超过最大限制：${numPerRoom}`)
         }
 
-        let hasUser = room.map((user: any) => user.uid).includes(user.uid)
+        let hasUser = room.map((user: any) => user.id).includes(user.id)
 
         if (!hasUser) {
             room.push(user)

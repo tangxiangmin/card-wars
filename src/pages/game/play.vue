@@ -48,11 +48,10 @@
     import Card from '../../core/card'
 
     import cardsFactory from '../../core/cards'
-    // import socket from '../socket/index'
+    import socket from '../../api/socket'
 
     import chat from '../../components/chat'
 
-    import urlKit from '../../util/urlKit'
 
     let table = new Table()
 
@@ -68,6 +67,9 @@
                 activeCardIndex: -1,
                 uid: null,
             }
+        },
+        props: {
+            users: Array,
         },
         components: {
             chat
@@ -88,9 +90,9 @@
         },
         created() {
             this.table = table
+            console.log(this.users)
 
-            this.init()
-            this.listen()
+            // this.listen()
         },
         filters: {
             squareRender(item) {
@@ -103,17 +105,33 @@
             },
         },
         methods: {
-            close() {
-                socket.close()
-            },
             init() {
-                let uid = urlKit.getParam("uid")
-                this.uid = parseInt(uid)
-                let roomId = urlKit.getParam("roomId")
-                socket.enterRoom({uid, roomId})
+                let players = this.users
+
+                players.forEach((userInfo, index) => {
+                    let {cards, userName, hp, uid} = userInfo
+                    if (userName && Array.isArray(cards)) {
+                        let cardGroup = cards
+
+                        // 第一轮的魔力值
+                        let startMp = index === 0 ? 3 : 4
+
+                        let player = table.getPlayerByUid(uid)
+                        if (!player) {
+                            player = new Player({uid, hp, startMp, cardGroup, userName})
+                        }
+
+                        table.addPlayer(player)
+                    } else {
+                        this.toast('账号不存在')
+                    }
+                })
+
+                // 第一个用户先出手
+                let firstPlayer = table.getPlayerByUid(players[0].uid)
+                table.newRound(firstPlayer, this.player)
             },
             listen() {
-
                 // 进入房间
                 socket.onEnterRoom((players) => {
                     players.forEach((userInfo, index) => {

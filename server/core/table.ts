@@ -2,10 +2,25 @@
  * 2019/1/21 下午6:15
  * 牌桌
  */
+import Player from "./player";
+import Card from "./card";
 
-class TableCell {
-    constructor({coord, currentCard}) {
-        this.coord = coord
+// 数据库保存的原始用户信息
+export interface userInfo {
+    id: number,
+    username: string,
+    hp: number,
+    cards: string
+}
+
+// 每个格子实例
+export class TableCell {
+    pos: number[]
+    currentCard: Card
+    isDisable: boolean
+
+    constructor(pos: number[], currentCard: Card) {
+        this.pos = pos
         this.currentCard = currentCard
         this.isDisable = false
     }
@@ -14,7 +29,7 @@ class TableCell {
         this.currentCard = null
     }
 
-    setDisable(isDisable) {
+    setDisable(isDisable: boolean) {
         this.isDisable = isDisable
     }
 
@@ -22,7 +37,7 @@ class TableCell {
         return this.currentCard === null
     }
 
-    collapse(card) {
+    collapse(card: Card) {
         let currentCard = this.currentCard
         let isAlive = false
         if (currentCard) {
@@ -53,34 +68,41 @@ class TableCell {
         return isAlive
     }
 
-    putCard(card) {
+    putCard(card: Card) {
         this.currentCard = card
-        card.pos = this.coord
+        card.pos = this.pos
     }
 }
 
+const NEED_PLAYER_NUM = 2
+
+// 游戏表格
 class Table {
+    row: number
+    col: number
+    rows: TableCell[][]
+
+    players: Player[]
+    currentPlayer: Player
+
     constructor(row = 4, col = 4) {
         this.row = row
         this.col = col
 
-        this.initRows()
-
         this.players = []
         this.currentPlayer = null
+
+        this._initRows()
     }
 
-    initRows() {
+    _initRows() {
         let {row, col} = this
         let rows = []
 
         for (let i = 0; i < row; i++) {
             rows[i] = []
             for (let j = 0; j < col; j++) {
-                let square = new TableCell({
-                    coord: [i, j],
-                    currentCard: null,
-                })
+                let square = new TableCell([i, j], null)
 
                 rows[i].push(square)
             }
@@ -89,27 +111,91 @@ class Table {
         this.rows = rows
     }
 
-    walkCells(cb) {
+    // 增加选手
+    _addPlayer(player: Player) {
+        if (this.players.length > NEED_PLAYER_NUM) {
+            throw new Error(`最多${NEED_PLAYER_NUM}名选手`)
+        }
+        let uid = player.uid
+        let user = this.getPlayerByUid(uid)
+        if (!user) {
+            player.table = this
+            this.players.push(player)
+        } else {
+            player = user
+            // console.log(`${player.userName}用户已加入该对局`)
+        }
+        return player
+    }
+
+    // 移除选手
+    // 一局游戏结束，则当前table会销毁，因此不需要调用_removePlayer的场景
+    // _removePlayer(player: Player) {
+    //     let players = this.players
+    //
+    //     for (let i = 0; i < players.length; ++i) {
+    //         if (players[i].uid === player.uid) {
+    //             players.splice(i, 1)
+    //             break
+    //         }
+    //     }
+    // }
+
+    // 遍历表格
+    _walkCells(cb: Function) {
         let {row, col} = this
         let rows = this.rows
         for (let i = 0; i < row; i++) {
             for (let j = 0; j < col; j++) {
-                let cell = rows[i][j]
+                let cell: TableCell = rows[i][j]
                 cb(cell)
             }
         }
     }
 
-    getPlayerByUid(uid) {
+    // ========外部api========//
+    // 初始化玩家，应该等待双方玩家都加入后调用
+    initPlayer(users: Array<userInfo>) {
+        if (users.length !== NEED_PLAYER_NUM) {
+            throw new Error(`users长度不正确，应为${NEED_PLAYER_NUM}`)
+        }
+
+        users.forEach((user: userInfo, index: number) => {
+            // 第一轮的魔力值
+            let startMp = index === 0 ? 3 : 4
+
+            // 加入选手
+            let player = this.getPlayerByUid(user.id)
+            if (!player) {
+                player = new Player(user, startMp)
+                this._addPlayer(player)
+            }
+        })
+    }
+
+    // 开始游戏
+    startGame() {
+        if (this.players.length < NEED_PLAYER_NUM) {
+            throw new Error(`房间人数小于${NEED_PLAYER_NUM}人，无法开始游戏`)
+        }
+
+        // 第一个用户先出手
+        let firstPlayer = this.players[0]
+        this.newRound(firstPlayer)
+    }
+
+    // 根据uid获取玩家
+    getPlayerByUid(uid: number) {
         return this.players.filter(item => {
             return item.uid === uid
         })[0]
     }
 
-    getPlayerCards(player) {
-        let cards = []
+    // 获取牌桌上某个玩家的所有卡牌
+    getPlayerCards(player: Player) {
+        let cards: Card[] = []
 
-        this.walkCells((cell) => {
+        this._walkCells((cell: TableCell) => {
             let card = cell.currentCard
             if (card && (card.player === player)) {
                 cards.push(card)
@@ -125,7 +211,7 @@ class Table {
         })[0]
     }
 
-    getCellByPos(pos) {
+    getCellByPos(pos: number[]): TableCell {
         if (!pos) {
             throw 'getCellByPos 无效 pos参数'
         }
@@ -135,7 +221,7 @@ class Table {
     }
 
     // 向棋盘上对应位置放置卡片
-    putCard(card, pos) {
+    putCard(card: Card, pos: number[]) {
         let cell = this.getCellByPos(pos)
         cell.putCard(card)
         card.onPut(this)
@@ -152,12 +238,12 @@ class Table {
     }
 
     // 移动卡片一步
-    moveCard(card) {
+    moveCard(card: Card) {
         if (card.isDie) {
             return
         }
 
-        let step = card.dir * 1
+        let step = card.dir
 
         let originCell = this.getCellByPos(card.pos)
         originCell.clearCurrentCard()
@@ -179,59 +265,40 @@ class Table {
             }
         }
 
-        this.updateCellDisable( this.currentPlayer)
+        this.updateCellDisable(this.currentPlayer)
     }
 
     // 更新单元格的状态
-    updateCellDisable(player) {
+    updateCellDisable(player: Player) {
         let farStep = player.getFarthestBound()
 
         // 更新
-        this.walkCells((cell) => {
-            let [row] = cell.coord
+        this._walkCells((cell: TableCell) => {
+            let [row] = cell.pos
             cell.setDisable(row < farStep)
         })
     }
 
-    // 增加选手
-    addPlayer(player) {
-        if (this.players.length > 2) {
-            throw "最多2名选手"
-        }
-        let uid = player.uid
-        let user = this.getPlayerByUid(uid)
-        if (!user) {
-            player.table = this
-            this.players.push(player)
-        } else {
-            player = user
-            // console.log(`${player.userName}用户已加入该对局`)
-        }
-        return player
-    }
-
-    removePlayer(player) {
-        let players = this.players
-
-        for (let i = 0; i < players.length; ++i) {
-            if (players[i].uid === player.uid) {
-                players.splice(i, 1)
-                break
-            }
-        }
-    }
 
     // 新回合
-    newRound(player, self) {
+    newRound(player: Player) {
         // 设置当前回合的选手
         this.currentPlayer = player
+
+        // 每一轮开始时，当前玩家存活的card应该继续执行
         let cards = this.getPlayerCards(player)
 
         cards.forEach(card => {
             this.moveCard(card)
         })
 
-        this.updateCellDisable(self)
+        // 移动完毕后，更新当前玩家的可移动区域
+        this.updateCellDisable(player)
+    }
+
+    // 获取当前场景状态
+    getCurrentState() {
+        // todo 返回当前游戏场景的状态，改状态用于渲染数据
     }
 }
 
