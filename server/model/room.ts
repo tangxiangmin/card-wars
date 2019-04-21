@@ -1,10 +1,15 @@
+import Table from "../core/table";
+
 let rooms: any = new Map()
 const numPerRoom: number = 2;
 
 export default {
     // 新增房间
     addNewRoom(roomId: string) {
-        rooms[roomId] = []
+        rooms[roomId] = {
+            users: [],
+            table: null
+        }
     },
     deleteRoom(roomId: string) {
         delete rooms[roomId]
@@ -25,17 +30,25 @@ export default {
         if (!room) {
             throw new Error(`roomId:${roomId}房间不存在`)
         }
-        if (this.getRoomUsers(roomId).length > numPerRoom) {
+
+        let users = this.getRoomUsers(roomId)
+        if (users.length > numPerRoom) {
             throw new Error(`roomId:${roomId}房间人数超过最大限制：${numPerRoom}`)
         }
 
-        let hasUser = room.map((user: any) => user.id).includes(user.id)
+        let hasUser = users.map((user: any) => user.id).includes(user.id)
 
         if (!hasUser) {
-            room.push(user)
+            users.push(user)
         }
     },
     getRoomUsers(roomId: string) {
-        return rooms[roomId]
+        return rooms[roomId].users
+    },
+    setRoomTable(roomId: string, table: Table) {
+        rooms[roomId].table = table
+    },
+    getRoomTable(roomId: string) {
+        return rooms[roomId].table
     }
 }

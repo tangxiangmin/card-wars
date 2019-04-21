@@ -8,23 +8,39 @@ import Token from './util/jwt'
 import roomModel from './model/room'
 import userModel from './model/user'
 
+import gameController from './controller/game'
+import Table, {userInfo} from "./core/table";
+import Player from "./core/player";
+
 let {EVENT} = config
 
 export default (server: any) => {
     let io = require('socket.io')(server);
 
+    let uidToSocketId: { [key: string]: number; } = {}
     // 鉴权中间件
     io.use(function (socket: any, next: any) {
         var query = socket.request._query;
-        let token = query.token
+        let {token, roomId} = query
+
         let uid
 
-        if (uid = Token.verify(token)) {
+        if (token && (uid = Token.verify(token))) {
             socket.uid = uid
+            socket.roomId = roomId
+            uidToSocketId[uid] = socket.id
         }
 
         next()
     });
+
+    function findSocketByUid(uid: number) {
+        let id = uidToSocketId[uid]
+        if (id) {
+            return io.sockets.connected[id]
+        }
+    }
+
 
     // ====相关事件==== //
     io.on('connect', function (socket: any) {
@@ -36,9 +52,20 @@ export default (server: any) => {
         logger.info('socket uid:', socket.uid, '进入房间')
 
         let uid = socket.uid
+
+        const updateRoomState = (cb: Function) => {
+            let table = roomModel.getRoomTable(socket.roomId)
+
+            table.players.forEach((player: Player) => {
+                let socket = findSocketByUid(player.uid)
+                let state = table.getCurrentState(socket.uid)
+                // 向指定客户端发送消息
+                cb(socket, state)
+            })
+        }
+
         // 断开连接
         socket.on('disconnect', function () {
-            // let {user} = socket
             logger.info(`${socket.uid}离开房间`);
 
             socket.broadcast.emit(EVENT.LEAVE_ROOM, {
@@ -58,7 +85,14 @@ export default (server: any) => {
                     let users = roomModel.getRoomUsers(roomId)
 
                     if (users.length === 2) {
-                        io.emit(EVENT.GAME_READY, users);
+                        // 初始化房间
+                        let table = await gameController.initRoom(users)
+
+                        roomModel.setRoomTable(socket.roomId, table)
+
+                        updateRoomState((socket: any, state: any) => {
+                            socket.emit(EVENT.GAME_READY, state);
+                        })
                     }
                 } catch (e) {
                     logger.error(e);
@@ -69,15 +103,41 @@ export default (server: any) => {
         });
 
         // 放置卡片
-        socket.on(EVENT.PUT_CARD, function (data: any) {
+        socket.on(EVENT.PUT_CARD, function (data: any, callback: Function) {
             logger.info(`放置卡片：${data.pos}`);
-            socket.broadcast.emit(EVENT.PUT_CARD, data);
+            try {
+                let table = roomModel.getRoomTable(socket.roomId)
+
+                let {card, pos} = data
+
+                let player = table.currentPlayer
+
+                let targetCard = player.getCardById(card.id)
+                player.putCardToTable(targetCard, pos)
+
+                updateRoomState((socket: any, state: any) => {
+                    socket.emit(EVENT.TABLE_UPDATE, state);
+                })
+
+            } catch (e) {
+                logger.error('PUT_CARD error', e)
+                callback(e)
+            }
         });
 
         // 通知对手进行下一回合
         socket.on(EVENT.NEXT_ROUND, function (data: any) {
             logger.info(`下一回合开始`);
-            socket.broadcast.emit(EVENT.NEXT_ROUND, data);
+            let table = roomModel.getRoomTable(socket.roomId)
+            let rival = table.getPlayerRival()
+            table.newRound(rival)
+
+            let cards = table.getPlayerCards(rival)
+            logger.info(cards)
+
+            updateRoomState((socket: any, state: any) => {
+                socket.emit(EVENT.TABLE_UPDATE, state);
+            })
         });
 
         // ===辅助功能=== //

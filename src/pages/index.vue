@@ -22,6 +22,8 @@
 <script>
     import {getUserInfo, createRoom} from '../api'
 
+    import {initSocket} from '../api/socket'
+
     export default {
         name: "index",
         data() {
@@ -37,11 +39,14 @@
         },
         methods: {
             play() {
+
                 createRoom().then(res => {
+
                     let {data} = res
                     if (data) {
                         let {roomId} = data
-
+                        initSocket(roomId)
+                        
                         this.$router.push({
                             path: '/game',
                             query: {

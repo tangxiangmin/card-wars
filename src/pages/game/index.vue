@@ -14,13 +14,12 @@
         data() {
             return {
                 roomStatus: ROOM_STATUS.WAIT,
-                users: []
+                tableInfo: []
             }
         },
         created() {
-            socket.onReady((users) => {
-                console.log('ready ', users)
-                this.users = users
+            socket.onReady((tableInfo) => {
+                this.tableInfo = tableInfo
                 this.roomStatus = ROOM_STATUS.PLAY
             })
         },
@@ -32,7 +31,7 @@
             } else if (roomStatus === ROOM_STATUS.PLAY) {
                 return h(playPage, {
                     props: {
-                        users: this.users
+                        initTable: this.tableInfo
                     }
                 })
             }

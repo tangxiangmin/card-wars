@@ -38,6 +38,7 @@ class Player {
     cardFactory: CardFactory
     currentCards: Array<Card>
     _userInfo: userInfo
+    isOwner: boolean
 
     constructor(user: userInfo, startMp: number) {
         this._userInfo = user
@@ -59,7 +60,7 @@ class Player {
         this.currentCards = [] // 当前手中的卡牌
 
         // 初始化操作
-        this.drawCards()
+        // this.drawCards()
     }
 
     _fromUserInfo(user: userInfo) {
@@ -78,6 +79,36 @@ class Player {
             throw new Error('未加入任何游戏')
         }
         let tableCards = table.getPlayerCards(this)
+
+        // 房主从下往上摆放
+        if (this.isOwner) {
+            let firstCard = tableCards[0]
+
+            if (firstCard) {
+                let [row] = firstCard.pos
+                return row
+            }
+
+            // 默认家门口的位置可放置
+            return table.row - 1
+        } else {
+            // 挑战者实际是从上往下摆放
+            let lastCard = tableCards[tableCards.length - 1]
+            if (lastCard) {
+                let [row] = lastCard.pos
+                return row
+            }
+            return 0
+        }
+    }
+
+    // 获取视觉上的可移动距离
+    getVirtualFarthestBound() {
+        let table = this.table
+
+        let tableCards = table.getPlayerCards(this)
+
+        // 房主从下往上摆放
         let firstCard = tableCards[0]
 
         if (firstCard) {
@@ -87,6 +118,17 @@ class Player {
 
         // 默认家门口的位置可放置
         return table.row - 1
+    }
+
+    // 根据卡牌id获取手中的牌
+    getCardById(id: number) {
+        let cards = this.currentCards
+        for (let i = 0; i < cards.length; ++i) {
+            let card = cards[i]
+            if (card.id === id) {
+                return card
+            }
+        }
     }
 
     // 抽牌，补充剩余的牌
@@ -121,35 +163,47 @@ class Player {
         let table = this.table
         let cell = table.getCellByPos(pos)
         let [row] = pos
+
         // 单元格未空，且在当前可移动范围内
-        return cell.isEmpty() && this.getFarthestBound() <= row
+        if (this.isOwner) {
+            return cell.isEmpty() && this.getFarthestBound() <= row
+        } else {
+            return cell.isEmpty() && this.getFarthestBound() >= row
+        }
     }
 
     // 放牌
     putCardToTable(card: Card, pos: number[]) {
-        let errorMsg = ''
         let table = this.table
 
         if (!table) {
             throw new Error('未加入游戏')
-        } else if (table.currentPlayer !== this) {
+        }
+
+        if (!this.isOwner) {
+            pos = [table.row - 1 - pos[0], pos[1]]
+        }
+
+        if (table.currentPlayer !== this) {
             throw new Error('非当前选手的回合')
         } else if (this.checkPosAvailable(pos)) {
-            if (this.mp >= card.cost) {
-                table.putCard(card, pos)
-                this.mp -= card.cost
+            let index = this.currentCards.indexOf(card)
 
-                let index = this.currentCards.indexOf(card)
-                this.currentCards.splice(index, 1)
+            if (index === -1) {
+                throw new Error('选手未持有该张卡牌')
+            }
 
-            } else {
+            if (this.mp < card.cost) {
                 throw new Error('mp值不足')
             }
+
+            this.mp -= card.cost
+            this.currentCards.splice(index, 1)
+
+            table.putCard(card, pos)
         } else {
             throw new Error('当前位置无法放置')
         }
-
-        return errorMsg
     }
 
     // 遭受卡牌攻击
@@ -164,6 +218,18 @@ class Player {
         this.mp = this.startMp + this.round
 
         this.drawCards()
+    }
+
+    // 为客户端返回需要的数值
+    toJSON() {
+        let {hp, mp, uid, username, isOwner} = this
+
+        return {
+            hp, mp, uid, username,
+            isOwner,
+            farthest: this.getVirtualFarthestBound(),
+            currentCards: this.currentCards.map((card: Card) => card.toJSON())
+        }
     }
 }
 

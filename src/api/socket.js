@@ -7,21 +7,27 @@ import auth from './auth'
 
 import config from '../config'
 
-let socket = io(`http://${location.hostname}:${config.port}`, {
-    query: 'token=' + auth.getToken()
-});
+let socket
 
 let {EVENT} = config
-// 心跳
-setInterval(() => {
-    socket.emit(EVENT.PING);
-}, 5000)
 
-// 登录失败
-socket.on(EVENT.INVALID_ACCESS_ERR, () => {
-    console.log('socket 链接鉴权失败，请重新登录')
-    // socket.close(true)
-})
+export const initSocket = function initSocket(roomId) {
+    let token = auth.getToken()
+    socket = io(`http://${location.hostname}:${config.port}`, {
+        query: `roomId=${roomId}` + (token ? ('&token=' + token) : ''),
+    });
+
+    // 心跳
+    setInterval(() => {
+        socket.emit(EVENT.PING);
+    }, 5000)
+
+    // 登录失败
+    socket.on(EVENT.INVALID_ACCESS_ERR, () => {
+        console.log('socket 链接鉴权失败，请重新登录')
+        // socket.close(true)
+    })
+}
 
 // 对外暴露的事件接口
 let client = {
@@ -55,18 +61,21 @@ let client = {
         socket.on(EVENT.GAME_READY, cb);
     },
     // 放置图片
-    putCard(data) {
-        socket.emit(EVENT.PUT_CARD, data);
+    putCard(data, cb) {
+        socket.emit(EVENT.PUT_CARD, data, cb);
     },
-
-    onPutCard(cb) {
-        socket.on(EVENT.PUT_CARD, cb);
-    },
+    // onPutCard(cb) {
+    //     socket.on(EVENT.PUT_CARD, cb);
+    // },
     nextRound(data) {
         socket.emit(EVENT.NEXT_ROUND, data);
     },
-    onNextRound(cb) {
-        socket.on(EVENT.NEXT_ROUND, cb);
+    // onNextRound(cb) {
+    //     socket.on(EVENT.NEXT_ROUND, cb);
+    // },
+    // 通用房间状态更新事件
+    onRoomUpdate(cb) {
+        socket.on(EVENT.TABLE_UPDATE, cb);
     },
     // 聊天
     chat(data) {

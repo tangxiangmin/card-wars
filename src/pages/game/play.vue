@@ -1,8 +1,10 @@
 <template>
     <div class="stage">
         <!--<chat></chat>-->
+
         <div class="stage_top">
             <div class="stage_info" v-if="rival">
+                {{rival.username}}
                 敌方生命值：{{rival.hp}}
                 敌方魔力值：{{rival.mp}}
             </div>
@@ -10,7 +12,7 @@
         </div>
         <div class="stage_map">
             <div v-for="(line, row) in table.rows" :key="row">
-                <div :class="{square: true, 'square-disable': item.isDisable, 'square-rival' : item.currentCard && item.currentCard.dir > 0}"
+                <div :class="{square: true, 'square-disable': row < player.farthest, 'square-rival' : item.currentCard && item.currentCard.player === player.uid}"
                      @click="clickSquare(row, col)"
                      v-for="(item, col) in line" :key="col">
                     {{ item | squareRender}}
@@ -21,7 +23,7 @@
             <div class="card-list">
                 <div :class="{card: true, 'card-on':index===activeCardIndex, 'card-disable': player && card.cost > player.mp}"
                      @click="chooseCard(index)"
-                     v-for="(card, index) in player.currentCards" :key="index">
+                     v-for="(card, index) in player.currentCards" :key="card.id">
                     {{card.name}} <br>
                     血量：{{card.hp}} <br>
                     消耗：{{card.cost}} <br>
@@ -29,70 +31,51 @@
                 </div>
             </div>
             <div class="stage_info">
+                <p>{{player.username}}</p>
                 <p>当前生命值：{{player.hp}}</p>
                 <p>当前魔力值：{{player.mp}}</p>
             </div>
         </div>
 
-        <div :class="{'next-round-disable': table.currentPlayer !== player}" class="next-round" @click="nextRound">
+        <div :class="{'next-round-disable': !table.currentRound}" class="next-round" @click="nextRound">
             结束回合
         </div>
+
         <!--<div class="float-btn" @click="close"></div>-->
     </div>
 </template>
 
 <script>
     // 实例化测试数据
-    import Player from '../../core/player'
-    import Table from '../../core/table'
-    import Card from '../../core/card'
+    // import Player from '../../core/player'
+    // import Card from '../../core/card'
 
-    import cardsFactory from '../../core/cards'
     import socket from '../../api/socket'
-
-    import chat from '../../components/chat'
-
-
-    let table = new Table()
-
-    // 第一回合开始
-    window.table = table
 
     // end 初始化游戏双方 //
     export default {
         name: "stage",
         data() {
             return {
-                table: null,
                 activeCardIndex: -1,
                 uid: null,
+                table: this.initTable
             }
         },
         props: {
-            users: Array,
+            initTable: Object,
         },
-        components: {
-            chat
-        },
+
         computed: {
             player() {
-                let target = table.players.filter(player => {
-                    return player.uid === this.uid
-                })
-                return target && target[0]
+                return this.table.player
             },
             rival() {
-                let target = table.players.filter(player => {
-                    return player.uid !== this.uid
-                })
-                return target && target[0]
+                return this.table.rival
             }
         },
         created() {
-            this.table = table
-            console.log(this.users)
-
-            // this.listen()
+            this.listen()
         },
         filters: {
             squareRender(item) {
@@ -105,90 +88,23 @@
             },
         },
         methods: {
-            init() {
-                let players = this.users
-
-                players.forEach((userInfo, index) => {
-                    let {cards, userName, hp, uid} = userInfo
-                    if (userName && Array.isArray(cards)) {
-                        let cardGroup = cards
-
-                        // 第一轮的魔力值
-                        let startMp = index === 0 ? 3 : 4
-
-                        let player = table.getPlayerByUid(uid)
-                        if (!player) {
-                            player = new Player({uid, hp, startMp, cardGroup, userName})
-                        }
-
-                        table.addPlayer(player)
-                    } else {
-                        this.toast('账号不存在')
-                    }
-                })
-
-                // 第一个用户先出手
-                let firstPlayer = table.getPlayerByUid(players[0].uid)
-                table.newRound(firstPlayer, this.player)
-            },
             listen() {
                 // 进入房间
-                socket.onEnterRoom((players) => {
-                    players.forEach((userInfo, index) => {
-                        let {cards, userName, hp, uid} = userInfo
-                        if (userName && Array.isArray(cards)) {
-                            let cardGroup = cards
-
-                            // 第一轮的魔力值
-                            let startMp = index === 0 ? 3 : 4
-
-                            let player = table.getPlayerByUid(uid)
-                            if (!player) {
-                                player = new Player({uid, hp, startMp, cardGroup, userName})
-                            }
-
-                            table.addPlayer(player)
-                        } else {
-                            this.toast('账号不存在')
-                        }
-                    })
-
-                    // 已经达到两人，开始游戏
-                    if (table.players.length === 2) {
-                        let firstPlayer = table.getPlayerByUid(players[0].uid)
-                        table.newRound(firstPlayer, this.player)
-                    }
-                })
-
                 socket.onUserLeaveRoom((data) => {
                     let {user} = data
-                    table.removePlayer(user)
-                    this.toast(`${user.userName}离开房间`)
+                    console.log(user, '离开房间')
                 })
 
-                // 对手放置卡片
-                socket.onPutCard((data) => {
-                    let {card, pos} = data
-                    pos[0] = this.table.row - pos[0] - 1
-
-                    let rivalCard = new Card(card)
-                    rivalCard.setDir(1)
-                    rivalCard.setPlayer(this.rival)
-
-                    this.table.putCard(rivalCard, pos)
+                socket.onRoomUpdate((data) => {
+                    console.log(data)
+                    this.table = data
                 })
+
                 // 对手点击结束回合
-                socket.onNextRound(() => {
-                    this.player.resetNewRound()
-                    table.newRound(this.player, this.player)
-                })
-            },
-            toast(tip) {
-                this.$layer.open({
-                    content: tip
-                    , skin: 'msg'
-                    , time: 2 //2秒后自动关闭
-                });
+                // socket.onNextRound(() => {
+                //     // this.player.resetNewRound()
+                //     // table.newRound(this.player, this.player)
+                // })
             },
             // 选择一张卡片
             chooseCard(index) {
@@ -199,29 +115,20 @@
                 let player = this.player
                 let pos = [row, col]
 
+                // todo 前端做一下简单校验
                 let activeCardIndex = this.activeCardIndex
                 if (activeCardIndex > -1) {
                     let card = player.currentCards[activeCardIndex]
 
-                    let errorMsg = this.player.putCardToTable(card, pos)
-
-                    if (errorMsg) {
-                        this.toast(errorMsg)
-                    } else {
-                        let cardConfig = cardsFactory.getCardConfigById(card.id)
-                        let data = {
-                            card: cardConfig,
-                            pos: [row, col]
+                    socket.putCard({card, pos}, (err) => {
+                        if (err) {
+                            console.log(err)
                         }
-
-                        socket.putCard(data)
-                        this.activeCardIndex = -1
-                    }
+                    })
                 }
             },
             nextRound() {
                 socket.nextRound()
-                table.newRound(this.rival, this.player)
             },
         }
     }

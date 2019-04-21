@@ -34,6 +34,9 @@ class Card {
 
     setPlayer(player: Player) {
         this.player = player
+        if (!player.isOwner) {
+            this.dir = 1
+        }
     }
 
     setDir(dir: number) {
@@ -62,6 +65,10 @@ class Card {
 
     }
 
+    toJSON() {
+        let {id, name, hp, cost, firstStep} = this
+        return {id, name, hp, cost, firstStep}
+    }
 }
 
 export default Card

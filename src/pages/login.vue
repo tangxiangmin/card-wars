@@ -22,8 +22,8 @@
         name: "login",
         data() {
             return {
-                account: 'root',
-                password: 'root'
+                account: '',
+                password: ''
             }
         },
         methods: {

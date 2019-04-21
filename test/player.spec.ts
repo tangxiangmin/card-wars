@@ -7,7 +7,6 @@ import Card from "../server/core/card";
 
 let assert = chai.assert
 
-
 describe('class Player', () => {
     let readyTable: Table
     let playerA: Player
@@ -116,6 +115,15 @@ describe('class Player', () => {
             })
         })
 
+        it('未持有卡牌时，应该抛出异常', () => {
+            let rivalPlayer = readyTable.getPlayerRival()
+
+            let pickCard = rivalPlayer.currentCards[0]
+            assert.throw(() => {
+                currentPlayer.putCardToTable(pickCard, pos)
+            })
+        })
+
         it('蓝量足够且目标cell有效时，可以卡牌放置在目标cell上', () => {
             currentPlayer.mp = Infinity
 
@@ -124,6 +132,43 @@ describe('class Player', () => {
             assert.doesNotThrow(() => {
                 currentPlayer.putCardToTable(pickCard, pos)
             })
+        })
+    })
+    context('player.putCardToTable 成功时', () => {
+        let pos: number[]
+        let currentPlayer: Player
+        let pickCard: Card
+
+        beforeEach(function () {
+            readyTable.startGame()
+            pos = [readyTable.row - 1, 0]
+            currentPlayer = readyTable.currentPlayer
+
+            currentPlayer.mp = 10000
+            pickCard = currentPlayer.currentCards[0]
+        })
+
+        it('应减少玩家的mp值', () => {
+            let originMp = currentPlayer.mp
+
+            currentPlayer.putCardToTable(pickCard, pos)
+            assert(originMp === currentPlayer.mp + pickCard.cost)
+        })
+
+        it('应移除玩家持有的卡牌', () => {
+            assert(currentPlayer.currentCards.indexOf(pickCard) > -1)
+
+            currentPlayer.putCardToTable(pickCard, pos)
+            assert(currentPlayer.currentCards.indexOf(pickCard) === -1)
+        })
+
+        it('应调用牌桌的putCard方法', () => {
+            currentPlayer.putCardToTable(pickCard, pos)
+            let tableCell = currentPlayer.table.getCellByPos(pos)
+            // todo 这个测试用例不严谨
+            assert(tableCell.currentCard = pickCard)
+
+            currentPlayer.table.display()
         })
     })
 })

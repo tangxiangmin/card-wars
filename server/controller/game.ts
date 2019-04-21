@@ -1,8 +1,7 @@
 import {Context} from "koa";
 import roomModel from '../model/room'
-import Player from "../core/player";
 
-import {userInfo} from '../model/user'
+import Table, {userInfo} from "../core/table";
 
 export default {
     async createRoom(ctx: Context) {
@@ -23,25 +22,11 @@ export default {
         }
     },
     // 初始化房间内容
-    async initRoomState(table: any, players: Array<userInfo>) {
+    async initRoom(players: Array<userInfo>) {
+        let table = new Table()
+        table.initPlayer(players)
 
-        players.forEach((user: userInfo, index: number) => {
-            let {cards, username, hp, id} = user
-            let cardGroup = cards.split(',').map(id => parseInt(id, 10))
-
-            // 第一轮的魔力值
-            let startMp = index === 0 ? 3 : 4
-
-            let player = table.getPlayerByUid(id)
-            if (!player) {
-                player = new Player(id, cardGroup, hp, startMp, username)
-                table.addPlayer(player)
-            }
-        })
-
-        // 第一个用户先出手
-        let firstPlayer = table.getPlayerByUid(players[0].id)
-
-        table.newRound(firstPlayer, firstPlayer)
+        table.startGame()
+        return table
     }
 }

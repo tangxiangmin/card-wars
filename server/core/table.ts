@@ -72,6 +72,28 @@ export class TableCell {
         this.currentCard = card
         card.pos = this.pos
     }
+
+    toJSON() {
+        let card = this.currentCard
+
+        if (card) {
+            return {
+                pos: this.pos,
+                currentCard: {
+                    player: card.player.uid,
+                    name: card.name,
+                    hp: card.hp,
+                    firstStep: card.firstStep,
+                }
+            }
+        } else {
+            return {
+                pos: this.pos,
+                currentCard: null
+            }
+        }
+
+    }
 }
 
 const NEED_PLAYER_NUM = 2
@@ -119,8 +141,11 @@ class Table {
         let uid = player.uid
         let user = this.getPlayerByUid(uid)
         if (!user) {
-            player.table = this
             this.players.push(player)
+
+            player.table = this
+            player.isOwner = this.isOwner(player)
+
         } else {
             player = user
             // console.log(`${player.userName}用户已加入该对局`)
@@ -181,6 +206,9 @@ class Table {
 
         // 第一个用户先出手
         let firstPlayer = this.players[0]
+        let rival = this.getPlayerRival(firstPlayer)
+        rival.drawCards()
+
         this.newRound(firstPlayer)
     }
 
@@ -201,11 +229,11 @@ class Table {
                 cards.push(card)
             }
         })
+
         return cards
     }
 
-    getPlayerRival() {
-        let player = this.currentPlayer
+    getPlayerRival(player: Player = this.currentPlayer) {
         return this.players.filter(p => {
             return player != p
         })[0]
@@ -220,6 +248,11 @@ class Table {
         return this.rows[x][y]
     }
 
+    // 判断玩家是否为房主：正视角观战
+    isOwner(player: Player) {
+        return player === this.players[0]
+    }
+
     // 向棋盘上对应位置放置卡片
     putCard(card: Card, pos: number[]) {
         let cell = this.getCellByPos(pos)
@@ -231,9 +264,12 @@ class Table {
 
         while (firstStep) {
             firstStep--
-            setTimeout(() => {
-                this.moveCard(card)
-            }, (firstStep + 1) * 500)
+            // todo 客户端实现移动动画
+            this.moveCard(card)
+
+            // setTimeout(() => {
+            //     this.moveCard(card)
+            // }, (firstStep + 1) * 500)
         }
     }
 
@@ -265,19 +301,19 @@ class Table {
             }
         }
 
-        this.updateCellDisable(this.currentPlayer)
+        // this.updateCellDisable(this.currentPlayer)
     }
 
     // 更新单元格的状态
-    updateCellDisable(player: Player) {
-        let farStep = player.getFarthestBound()
-
-        // 更新
-        this._walkCells((cell: TableCell) => {
-            let [row] = cell.pos
-            cell.setDisable(row < farStep)
-        })
-    }
+    // updateCellDisable(player: Player) {
+    //     let farStep = player.getFarthestBound()
+    //
+    //     // 更新
+    //     this._walkCells((cell: TableCell) => {
+    //         let [row] = cell.pos
+    //         cell.setDisable(row < farStep)
+    //     })
+    // }
 
 
     // 新回合
@@ -287,18 +323,92 @@ class Table {
 
         // 每一轮开始时，当前玩家存活的card应该继续执行
         let cards = this.getPlayerCards(player)
-
         cards.forEach(card => {
             this.moveCard(card)
         })
 
-        // 移动完毕后，更新当前玩家的可移动区域
-        this.updateCellDisable(player)
+        player.resetNewRound()
+
+        //
+        // // 移动完毕后，更新当前玩家的可移动区域
+        // this.updateCellDisable(player)
     }
 
     // 获取当前场景状态
-    getCurrentState() {
+    getCurrentState(uid: number) {
         // todo 返回当前游戏场景的状态，改状态用于渲染数据
+        let rows: object[][] = []
+        let currentRound = this.currentPlayer.uid === uid
+        let isOwner = this.players[0].uid === uid
+
+        // 每位玩家的视角都在下方，上方为对手的阵营，因此需要调整rows的数据
+        for (let i = 0; i < this.row; ++i) {
+            rows[i] = []
+        }
+        for (let i = 0; i < this.row; i++) {
+            for (let j = 0; j < this.col; ++j) {
+                let cell = this.rows[i][j]
+
+                // rows[i][j] = cell.toJSON()
+                //
+                if (isOwner) {
+                    rows[i][j] = cell.toJSON()
+                } else {
+                    rows[this.row - 1 - i][j] = cell.toJSON()
+                }
+            }
+        }
+
+        let player = this.getPlayerByUid(uid)
+
+        let rival = this.getPlayerRival(player).toJSON()
+        // 无法看见对手的牌组
+        delete rival.currentCards
+
+        return {
+            player: player.toJSON(),
+            rival: rival,
+            rows,
+            currentRound
+        }
+    }
+
+    // 控制台展示当前牌桌数据
+    display() {
+        let [player1, player2] = this.players
+
+        let playerStatus = (player: Player) => {
+            return `\n-----------\n${player.username} hp:${player.hp} mp:${player.mp}\n-----------\n`
+        }
+
+
+        let str = playerStatus(player1)
+
+        const cellWidth = 20
+        for (let i = 0; i < this.row; ++i) {
+            for (let j = 0; j < this.col; ++j) {
+                let cell: TableCell = this.rows[i][j]
+                let card = cell.currentCard
+                if (card) {
+                    let info = `${card.name}(${card.hp})`
+                    let len = info.length
+                    if (info.length < cellWidth) {
+                        let start = (cellWidth - len) / 2
+                        info = info.padStart(len + start, ' ')
+                        info = info.padEnd(cellWidth, ' ')
+                    }
+                    str += info
+                } else {
+                    str += '|' + ''.padStart(18, ' ') + '|'
+                }
+            }
+            str += '\n'
+        }
+
+
+        str += playerStatus(player2)
+
+        console.log(str)
     }
 }
 
