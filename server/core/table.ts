@@ -17,20 +17,14 @@ export interface userInfo {
 export class TableCell {
     pos: number[]
     currentCard: Card
-    isDisable: boolean
 
     constructor(pos: number[], currentCard: Card) {
         this.pos = pos
         this.currentCard = currentCard
-        this.isDisable = false
     }
 
     clearCurrentCard() {
         this.currentCard = null
-    }
-
-    setDisable(isDisable: boolean) {
-        this.isDisable = isDisable
     }
 
     isEmpty() {
@@ -41,7 +35,7 @@ export class TableCell {
         let currentCard = this.currentCard
         let isAlive = false
         if (currentCard) {
-            // 当前位置包含有方卡牌
+            // 当前位置包含友方卡牌
             if (currentCard.player === card.player) {
                 return isAlive
             } else {
@@ -71,6 +65,10 @@ export class TableCell {
     putCard(card: Card) {
         this.currentCard = card
         card.pos = this.pos
+        // 保存卡牌本轮的移动路径
+        card.lastRoundPath.push({
+            pos: card.pos
+        })
     }
 
     toJSON() {
@@ -84,6 +82,8 @@ export class TableCell {
                     name: card.name,
                     hp: card.hp,
                     firstStep: card.firstStep,
+                    uniqueId: card.uniqueId,
+                    lastRoundPath: card.lastRoundPath,
                 }
             }
         } else {
@@ -107,7 +107,7 @@ class Table {
     players: Player[]
     currentPlayer: Player
 
-    constructor(row = 4, col = 4) {
+    constructor(row = 5, col = 4) {
         this.row = row
         this.col = col
 
@@ -264,12 +264,7 @@ class Table {
 
         while (firstStep) {
             firstStep--
-            // todo 客户端实现移动动画
             this.moveCard(card)
-
-            // setTimeout(() => {
-            //     this.moveCard(card)
-            // }, (firstStep + 1) * 500)
         }
     }
 
@@ -290,9 +285,12 @@ class Table {
         let isEnd = (card.dir < 0 && row + step < 0) || (card.dir > 0 && row + step >= this.row)
 
         if (isEnd) {
+            // 抵达敌方阵营
             let rivalPlayer = this.getPlayerRival()
             rivalPlayer.underAttack(card)
+            card.isDie = true
         } else {
+
             let nextCell = this.getCellByPos(nextPos)
             let isAlive = nextCell.collapse(card)
 
@@ -301,20 +299,7 @@ class Table {
             }
         }
 
-        // this.updateCellDisable(this.currentPlayer)
     }
-
-    // 更新单元格的状态
-    // updateCellDisable(player: Player) {
-    //     let farStep = player.getFarthestBound()
-    //
-    //     // 更新
-    //     this._walkCells((cell: TableCell) => {
-    //         let [row] = cell.pos
-    //         cell.setDisable(row < farStep)
-    //     })
-    // }
-
 
     // 新回合
     newRound(player: Player) {
@@ -324,19 +309,16 @@ class Table {
         // 每一轮开始时，当前玩家存活的card应该继续执行
         let cards = this.getPlayerCards(player)
         cards.forEach(card => {
+            card.lastRoundPath = []
             this.moveCard(card)
         })
 
         player.resetNewRound()
 
-        //
-        // // 移动完毕后，更新当前玩家的可移动区域
-        // this.updateCellDisable(player)
     }
 
     // 获取当前场景状态
     getCurrentState(uid: number) {
-        // todo 返回当前游戏场景的状态，改状态用于渲染数据
         let rows: object[][] = []
         let currentRound = this.currentPlayer.uid === uid
         let isOwner = this.players[0].uid === uid
@@ -349,8 +331,6 @@ class Table {
             for (let j = 0; j < this.col; ++j) {
                 let cell = this.rows[i][j]
 
-                // rows[i][j] = cell.toJSON()
-                //
                 if (isOwner) {
                     rows[i][j] = cell.toJSON()
                 } else {

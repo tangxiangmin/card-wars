@@ -1,7 +1,7 @@
 <template>
     <div class="stage">
-        <!--<chat></chat>-->
-
+        <prospect></prospect>
+        <!--对手状态-->
         <div class="stage_top">
             <div class="stage_info" v-if="rival">
                 {{rival.username}}
@@ -10,20 +10,27 @@
             </div>
 
         </div>
+        <!--牌桌-->
         <div class="stage_map">
-            <div v-for="(line, row) in table.rows" :key="row">
-                <div :class="{square: true, 'square-disable': row < player.farthest, 'square-rival' : item.currentCard && item.currentCard.player === player.uid}"
+            <div v-for="(line, row) in rows" :key="row">
+                <div :class="{square: true, 'square-disable': row < player.farthest, 'square-rival' : item.currentCard && item.currentCard.player !== player.uid}"
                      @click="clickSquare(row, col)"
                      v-for="(item, col) in line" :key="col">
-                    {{ item | squareRender}}
+
+                    <div class="square_inner" :style="item.currentCard && item.currentCard.cursorStyle">
+                        {{ item | squareRender}}
+                    </div>
+
                 </div>
             </div>
+            <!--<div class="square square-cursor" :style="cursorStyle"></div>-->
         </div>
+        <!--玩家状态及手中卡牌-->
         <div class="stage_bottom" v-if="player">
             <div class="card-list">
                 <div :class="{card: true, 'card-on':index===activeCardIndex, 'card-disable': player && card.cost > player.mp}"
                      @click="chooseCard(index)"
-                     v-for="(card, index) in player.currentCards" :key="card.id">
+                     v-for="(card, index) in player.currentCards" :key="card.uniqueId">
                     {{card.name}} <br>
                     血量：{{card.hp}} <br>
                     消耗：{{card.cost}} <br>
@@ -46,21 +53,22 @@
 </template>
 
 <script>
-    // 实例化测试数据
-    // import Player from '../../core/player'
-    // import Card from '../../core/card'
-
     import socket from '../../api/socket'
+    import prospect from '../../components/prospect'
 
-    // end 初始化游戏双方 //
     export default {
         name: "stage",
         data() {
             return {
                 activeCardIndex: -1,
                 uid: null,
-                table: this.initTable
+                table: this.initTable,
+
+                movedMap: {}, //已移动的表格位置
             }
+        },
+        components: {
+            prospect
         },
         props: {
             initTable: Object,
@@ -72,10 +80,28 @@
             },
             rival() {
                 return this.table.rival
+            },
+            rows() {
+                return this.table.rows
             }
         },
-        created() {
-            this.listen()
+
+        watch: {
+            player: {
+                handler(newValue, oldValue) {
+                    if (newValue.hp <= 0) {
+                        this.showResult('你输了，请再接再厉~')
+                    }
+                },
+                deep: true
+            },
+            rival: {
+                handler(newValue, oldValue) {
+                    if (newValue.hp <= 0) {
+                        this.showResult('恭喜你，获得胜利~')
+                    }
+                }
+            }
         },
         filters: {
             squareRender(item) {
@@ -87,17 +113,81 @@
                 return `${currentCard.name}(${currentCard.hp})`
             },
         },
+        created() {
+            this.listen()
+        },
+        destroyed() {
+            socket.close()
+        },
         methods: {
+            getPlayerCard() {
+                let cards = []
+                this.table.rows.forEach((line, row) => {
+                    line.forEach((cell, col) => {
+                        if (cell.currentCard && cell.currentCard.player === this.player.uid) {
+                            cards.push(cell.currentCard)
+                        }
+                    })
+                })
+                return cards
+            },
+            async moveCard() {
+
+                let cards = this.getPlayerCard()
+
+                const sleep = (ms) => {
+                    return new Promise((resolve) => {
+                        setTimeout(() => {
+                            resolve()
+                        }, ms)
+                    })
+                }
+
+                let movedMap = this.movedMap
+                for (let card of cards) {
+                    if (movedMap[card.uniqueId]) {
+                        continue
+                    }
+
+                    let paths = card.lastRoundPath
+
+                    if (!paths || !paths.length) {
+                        continue
+                    }
+
+                    let lastPos = paths[paths.length - 1].pos
+
+                    for (let i = 0; i < paths.length; ++i) {
+                        let {pos} = paths[i]
+                        let [y, x] = pos
+                        let style = {
+                            transform: `translate(${0}%, ${(y - lastPos[0]) * 100}%)`,
+                        }
+                        if (i > 0) {
+                            style.transition = 'all linear .3s'
+                        }
+
+                        card.cursorStyle = style
+
+                        this.$forceUpdate()
+
+                        await sleep(300)
+                    }
+                    movedMap[card.uniqueId] = true
+                }
+            },
             listen() {
                 // 进入房间
                 socket.onUserLeaveRoom((data) => {
-                    let {user} = data
-                    console.log(user, '离开房间')
+                    socket.close()
+                    this.showResult('对手离开房间，你获得胜利~')
                 })
 
                 socket.onRoomUpdate((data) => {
                     console.log(data)
                     this.table = data
+
+                    this.moveCard()
                 })
 
                 // 对手点击结束回合
@@ -108,10 +198,19 @@
             },
             // 选择一张卡片
             chooseCard(index) {
+                if (!this.table.currentRound) {
+                    this.$toast('不是你的回合')
+                    return
+                }
                 this.activeCardIndex = index
             },
             // 点击区块，执行相关逻辑
             clickSquare(row, col) {
+                if (!this.table.currentRound) {
+                    this.$toast('不是你的回合')
+                    return
+                }
+
                 let player = this.player
                 let pos = [row, col]
 
@@ -121,15 +220,28 @@
                     let card = player.currentCards[activeCardIndex]
 
                     socket.putCard({card, pos}, (err) => {
+                        this.activeCardIndex = -1
                         if (err) {
-                            console.log(err)
+                            this.$toast(err)
                         }
                     })
                 }
             },
             nextRound() {
+                this.movedMap = {}
                 socket.nextRound()
             },
+            showResult(msg) {
+                this.$layer.open({
+                    content: msg
+                    , btn: ['返回首页']
+                    , yes: (index) => {
+                        this.$router.back()
+                        layer.close(index);
+                    }
+                });
+
+            }
         }
     }
 </script>
@@ -152,6 +264,7 @@
         }
         &_map {
             height: 80vw;
+            position: relative;
             /*background-image: linear-gradient(#f5f5f5 1px, transparent 0), linear-gradient(90deg, #f5f5f5 1px, transparent 0);*/
             /*background-size: 20vw 20vw, 20vw 20vw;*/
         }
@@ -190,12 +303,8 @@
 
     .square {
         width: 20vw;
-        height: 20vw;
+        height: 16vw;
         float: left;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: rem(24);
 
         border-bottom: $baseborder;
         border-left: $baseborder;
@@ -207,7 +316,22 @@
         }
         &-rival {
             color: red;
+        }
+        &_inner {
 
+            width: 100%;
+            height: 100%;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: rem(24);
+        }
+        &-cursor {
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: red;
         }
     }
 

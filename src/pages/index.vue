@@ -37,6 +37,9 @@
             }).catch(e => {
             })
         },
+        mounted() {
+
+        },
         methods: {
             play() {
 
@@ -46,7 +49,7 @@
                     if (data) {
                         let {roomId} = data
                         initSocket(roomId)
-                        
+
                         this.$router.push({
                             path: '/game',
                             query: {

@@ -15,6 +15,8 @@ class Card {
     table: Table
     player: Player
     isDie: boolean
+    uniqueId: string
+    lastRoundPath: object[]
 
     constructor(id: number, name: string, hp: number, cost: number, pos: number[], firstStep: number) {
         this.id = id
@@ -30,6 +32,8 @@ class Card {
         this.table = null
         this.player = null
         this.isDie = false
+        this.uniqueId = +new Date() + '' + Math.random()
+        this.lastRoundPath = []
     }
 
     setPlayer(player: Player) {
@@ -66,8 +70,8 @@ class Card {
     }
 
     toJSON() {
-        let {id, name, hp, cost, firstStep} = this
-        return {id, name, hp, cost, firstStep}
+        let {id, name, hp, cost, firstStep, uniqueId, lastRoundPath} = this
+        return {id, name, hp, cost, firstStep, uniqueId, lastRoundPath}
     }
 }
 

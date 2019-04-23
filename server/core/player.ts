@@ -86,7 +86,7 @@ class Player {
 
             if (firstCard) {
                 let [row] = firstCard.pos
-                return row
+                return Math.max(1, row)
             }
 
             // 默认家门口的位置可放置
@@ -96,28 +96,20 @@ class Player {
             let lastCard = tableCards[tableCards.length - 1]
             if (lastCard) {
                 let [row] = lastCard.pos
-                return row
+                return Math.min(table.row - 2, row)
             }
+            // 无法摆放在对方家门口
             return 0
         }
     }
 
     // 获取视觉上的可移动距离
     getVirtualFarthestBound() {
-        let table = this.table
-
-        let tableCards = table.getPlayerCards(this)
-
-        // 房主从下往上摆放
-        let firstCard = tableCards[0]
-
-        if (firstCard) {
-            let [row] = firstCard.pos
-            return row
+        if (this.isOwner) {
+            return this.getFarthestBound()
+        } else {
+            return this.table.row - 1 - this.getFarthestBound()
         }
-
-        // 默认家门口的位置可放置
-        return table.row - 1
     }
 
     // 根据卡牌id获取手中的牌

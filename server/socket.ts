@@ -121,7 +121,7 @@ export default (server: any) => {
 
             } catch (e) {
                 logger.error('PUT_CARD error', e)
-                callback(e)
+                callback(e.toString())
             }
         });
 

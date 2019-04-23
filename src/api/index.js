@@ -5,7 +5,7 @@
 import axios from 'axios'
 import auth from './auth'
 
-axios.defaults.baseURL = '//localhost:3000/api'
+axios.defaults.baseURL = `//${location.hostname}:3000/api`
 import router from '../router'
 
 axios.interceptors.request.use(
