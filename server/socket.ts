@@ -1,6 +1,4 @@
-import user from "./model/user";
-
-let logger = require('./util/logger')
+import logger from './util/logger'
 
 let config = require('../src/config')
 import Token from './util/jwt'

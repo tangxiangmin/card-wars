@@ -12,6 +12,7 @@
   "dependencies": {
     "@types/koa": "^2.0.48",
     "@types/koa-router": "^7.0.40",
+    "@types/mysql2": "github:types/mysql2",
     "axios": "^0.18.0",
     "jwt-simple": "^0.5.6",
     "koa": "^2.7.0",
@@ -26,6 +27,7 @@
   },
   "devDependencies": {
     "@types/chai": "^4.1.7",
+    "@types/log4js": "^2.3.5",
     "@types/mocha": "^5.2.6",
     "@types/node": "^7.0.60",
     "@vue/cli-plugin-babel": "^3.3.0",

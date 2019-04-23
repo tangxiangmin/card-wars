@@ -1,9 +1,9 @@
 /**
- * 连接mysql
+ * 初始化mysql
  */
-let mysql = require('mysql2/promise');
 
-let connection
+let mysql = require('mysql2/promise')
+let connection: any
 
 try {
     ~(async () => {
@@ -16,7 +16,7 @@ try {
         console.log('The mysql is connected!')
     })()
 } catch (e) {
-    global.logger.error("mysql连接失败", e)
+    console.log("mysql连接失败", e)
 }
 
 module.exports = {

@@ -1,6 +1,6 @@
 <template>
     <div class="stage">
-        <prospect></prospect>
+        <!--<prospect></prospect>-->
         <!--对手状态-->
         <div class="stage_top">
             <div class="stage_info" v-if="rival">
@@ -47,12 +47,10 @@
         <div :class="{'next-round-disable': !table.currentRound}" class="next-round" @click="nextRound">
             结束回合
         </div>
-
-        <!--<div class="float-btn" @click="close"></div>-->
     </div>
 </template>
 
-<script>
+<script lang="ts">
     import socket from '../../api/socket'
     import prospect from '../../components/prospect'
 
@@ -120,11 +118,15 @@
             socket.close()
         },
         methods: {
-            getPlayerCard() {
+            // 获取当前回合玩家的π
+            getCurrentPlayerCard() {
                 let cards = []
+                let table = this.table
+                let targetUid = table.currentRound ? this.player.uid : this.rival.uid
+
                 this.table.rows.forEach((line, row) => {
                     line.forEach((cell, col) => {
-                        if (cell.currentCard && cell.currentCard.player === this.player.uid) {
+                        if (cell.currentCard && cell.currentCard.player === targetUid) {
                             cards.push(cell.currentCard)
                         }
                     })
@@ -132,8 +134,7 @@
                 return cards
             },
             async moveCard() {
-
-                let cards = this.getPlayerCard()
+                let cards = this.getCurrentPlayerCard()
 
                 const sleep = (ms) => {
                     return new Promise((resolve) => {
@@ -160,8 +161,9 @@
                     for (let i = 0; i < paths.length; ++i) {
                         let {pos} = paths[i]
                         let [y, x] = pos
+                        let diff = this.player.isOwner ? (y - lastPos[0]) : (lastPos[0] - y)
                         let style = {
-                            transform: `translate(${0}%, ${(y - lastPos[0]) * 100}%)`,
+                            transform: `translate(${0}%, ${diff * 100}%)`,
                         }
                         if (i > 0) {
                             style.transition = 'all linear .3s'
@@ -214,7 +216,6 @@
                 let player = this.player
                 let pos = [row, col]
 
-                // todo 前端做一下简单校验
                 let activeCardIndex = this.activeCardIndex
                 if (activeCardIndex > -1) {
                     let card = player.currentCards[activeCardIndex]
