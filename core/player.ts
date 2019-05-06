@@ -2,7 +2,7 @@
  * 2019/1/21 下午5:59
  */
 
-import cardModel from '../model/card'
+import cardModel from '../server/model/card'
 import Card from "./card";
 import Table, {userInfo} from "./table";
 

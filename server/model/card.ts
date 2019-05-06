@@ -1,4 +1,4 @@
-import Card from "../core/card";
+import Card from "../../core/card";
 
 
 let createCardTemp = (id: number, name: string, hp: number, cost: number, firstStep: number): object => {

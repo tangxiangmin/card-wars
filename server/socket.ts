@@ -7,8 +7,8 @@ import roomModel from './model/room'
 import userModel from './model/user'
 
 import gameController from './controller/game'
-import Table, {userInfo} from "./core/table";
-import Player from "./core/player";
+import Table, {userInfo} from "../core/table";
+import Player from "../core/player";
 
 let {EVENT} = config
 

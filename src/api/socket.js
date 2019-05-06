@@ -24,7 +24,7 @@ export const initSocket = function initSocket(roomId) {
 
     // 登录失败
     socket.on(EVENT.INVALID_ACCESS_ERR, () => {
-        console.log('socket 链接鉴权失败，请重新登录')
+        // console.log('socket 链接鉴权失败，请重新登录')
         // socket.close(true)
     })
 }

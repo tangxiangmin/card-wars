@@ -50,7 +50,7 @@
     </div>
 </template>
 
-<script lang="ts">
+<script>
     import socket from '../../api/socket'
     import prospect from '../../components/prospect'
 

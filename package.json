@@ -44,6 +44,7 @@
     "sass-loader": "^7.1.0",
     "start-server-webpack-plugin": "^2.2.5",
     "style-resources-loader": "^1.2.1",
+    "ts-loader": "^4.5.0",
     "ts-node": "^5.0.1",
     "typescript": "^2.9.2",
     "vue-template-compiler": "^2.5.21"

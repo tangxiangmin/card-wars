@@ -5,8 +5,25 @@ module.exports = {
     chainWebpack: config => {
         const types = ['vue-modules', 'vue', 'normal-modules', 'normal']
         types.forEach(type => addStyleResource(config.module.rule('scss').oneOf(type)))
+
+        config.resolve.extensions.store.add('ts')
+
     },
     configureWebpack: {
+        resolve: {
+            extensions: ['ts']
+        },
+        module: {
+            rules: [
+                {
+                    test: /\.ts$/,
+                    loader: 'ts-loader',
+                    // options: {
+                    //     appendTsSuffixTo: [/\.vue$/],
+                    // }
+                },
+            ]
+        },
         devServer: {
             // clientLogLevel: 'warning',
             historyApiFallback: true,

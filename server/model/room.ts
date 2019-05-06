@@ -1,4 +1,4 @@
-import Table from "../core/table";
+import Table from "../../core/table";
 
 let rooms: any = new Map()
 const numPerRoom: number = 2;

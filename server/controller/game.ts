@@ -1,7 +1,7 @@
 import {Context} from "koa";
 import roomModel from '../model/room'
 
-import Table, {userInfo} from "../core/table";
+import Table, {userInfo} from "../../core/table";
 
 export default {
     async createRoom(ctx: Context) {

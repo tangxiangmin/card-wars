@@ -1,9 +1,10 @@
 import * as chai from 'chai'
 
-import Player from '../server/core/player'
+import Player from '../core/player'
+
 import {userA, userB} from "./mock";
-import Table, {TableCell} from "../server/core/table";
-import Card from "../server/core/card";
+import Table, {TableCell} from "../core/table";
+import Card from "../core/card";
 
 let assert = chai.assert
 

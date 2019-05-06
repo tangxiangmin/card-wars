@@ -1,5 +1,5 @@
 import * as chai from 'chai'
-import Table from "../server/core/table";
+import Table from "../core/table";
 
 let assert = chai.assert
 import {userA, userB} from "./mock";
