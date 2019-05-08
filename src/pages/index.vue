@@ -9,6 +9,7 @@
 
         <div class="nav">
             <button class="btn" @click="play">开始游戏</button>
+            <button class="btn" @click="playSingle">练习模式</button>
             <button class="btn">查看排行</button>
         </div>
         <div class="menu">
@@ -42,6 +43,11 @@
 
         },
         methods: {
+            playSingle() {
+                this.$router.push({
+                    path: '/practice',
+                })
+            },
             play() {
 
                 createRoom().then(res => {

@@ -188,7 +188,6 @@ class Table {
         users.forEach((user: userInfo, index: number) => {
             // 第一轮的魔力值
             let startMp = index === 0 ? 3 : 4
-
             // 加入选手
             let player = this.getPlayerByUid(user.id)
             if (!player) {
