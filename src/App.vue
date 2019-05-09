@@ -101,4 +101,7 @@
     }
 
     /* ---end reset--- */
+
+    @import "./assets/scss/stage";
+
 </style>

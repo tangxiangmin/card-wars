@@ -4,6 +4,7 @@
  */
 import Player from "./player";
 import Card from "./card";
+import EventEmitter from './eventEmitter'
 
 // 数据库保存的原始用户信息
 export interface userInfo {
@@ -24,6 +25,12 @@ export class TableCell {
     }
 
     clearCurrentCard() {
+        let card = this.currentCard
+        if (card) {
+            let table = card.player.table
+            table.emit('cardLeave', {pos: this.pos, card})
+        }
+
         this.currentCard = null
     }
 
@@ -65,6 +72,10 @@ export class TableCell {
     putCard(card: Card) {
         this.currentCard = card
         card.pos = this.pos
+
+        let table = card.player.table
+        table.emit('cardEnter', {pos: this.pos, card})
+
         // 保存卡牌本轮的移动路径
         card.lastRoundPath.push({
             pos: card.pos
@@ -99,38 +110,53 @@ export class TableCell {
 const NEED_PLAYER_NUM = 2
 
 // 游戏表格
-class Table {
+class Table extends EventEmitter {
     row: number
     col: number
     rows: TableCell[][]
+    basicRows: any[][]
 
     players: Player[]
     currentPlayer: Player
+    platform: string
+    isClient: boolean
 
     constructor(row = 5, col = 4) {
+        super()
         this.row = row
         this.col = col
 
         this.players = []
         this.currentPlayer = null
+        this.isClient = false
 
         this._initRows()
+    }
+
+    setPlatform(platform) {
+        if (platform === 'client') {
+            this.isClient = true
+        }
+        this.platform = platform
     }
 
     _initRows() {
         let {row, col} = this
         let rows = []
-
+        let basicRows = []
         for (let i = 0; i < row; i++) {
             rows[i] = []
+            basicRows[i] = []
             for (let j = 0; j < col; j++) {
                 let square = new TableCell([i, j], null)
-
+                basicRows[i].push({})
                 rows[i].push(square)
             }
         }
 
         this.rows = rows
+
+        this.basicRows = basicRows
     }
 
     // 增加选手
@@ -152,19 +178,6 @@ class Table {
         }
         return player
     }
-
-    // 移除选手
-    // 一局游戏结束，则当前table会销毁，因此不需要调用_removePlayer的场景
-    // _removePlayer(player: Player) {
-    //     let players = this.players
-    //
-    //     for (let i = 0; i < players.length; ++i) {
-    //         if (players[i].uid === player.uid) {
-    //             players.splice(i, 1)
-    //             break
-    //         }
-    //     }
-    // }
 
     // 遍历表格
     _walkCells(cb: Function) {
@@ -261,9 +274,18 @@ class Table {
         // 放置后自动移动
         let firstStep = card.firstStep
 
+        let index = 0
         while (firstStep) {
+            index++
             firstStep--
-            this.moveCard(card)
+            if (this.isClient) {
+                // 延时展示卡牌运动路径
+                setTimeout(() => {
+                    this.moveCard(card)
+                }, index * 500)
+            } else {
+                this.moveCard(card)
+            }
         }
     }
 
@@ -292,6 +314,7 @@ class Table {
 
             let nextCell = this.getCellByPos(nextPos)
             let isAlive = nextCell.collapse(card)
+
 
             if (isAlive) {
                 nextCell.putCard(card)
@@ -350,44 +373,6 @@ class Table {
             rows,
             currentRound
         }
-    }
-
-    // 控制台展示当前牌桌数据
-    display() {
-        let [player1, player2] = this.players
-
-        let playerStatus = (player: Player) => {
-            return `\n-----------\n${player.username} hp:${player.hp} mp:${player.mp}\n-----------\n`
-        }
-
-
-        let str = playerStatus(player1)
-
-        const cellWidth = 20
-        for (let i = 0; i < this.row; ++i) {
-            for (let j = 0; j < this.col; ++j) {
-                let cell: TableCell = this.rows[i][j]
-                let card = cell.currentCard
-                if (card) {
-                    let info = `${card.name}(${card.hp})`
-                    let len = info.length
-                    if (info.length < cellWidth) {
-                        let start = (cellWidth - len) / 2
-                        info = info.padStart(len + start, ' ')
-                        info = info.padEnd(cellWidth, ' ')
-                    }
-                    str += info
-                } else {
-                    str += '|' + ''.padStart(18, ' ') + '|'
-                }
-            }
-            str += '\n'
-        }
-
-
-        str += playerStatus(player2)
-
-        console.log(str)
     }
 }
 

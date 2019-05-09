@@ -11,19 +11,11 @@
 
         </div>
         <!--牌桌-->
-        <div class="stage_map">
-            <div v-for="(line, row) in rows" :key="row">
-                <div :class="{square: true, 'square-disable': row < tableState.player.farthest, 'square-rival' : item.currentCard && item.currentCard.player !== tableState.player.uid}"
-                     @click="clickSquare(row, col)"
-                     v-for="(item, col) in line" :key="col">
-
-                    <div class="square_inner" :style="item.currentCard && item.currentCard.cursorStyle">
-                        {{ item | squareRender}}
-                    </div>
-
-                </div>
-            </div>
-        </div>
+        <game-table
+                v-if="tableState.player"
+                :rows="rows"
+                :clickSquare="clickSquare"
+                :farthest="tableState.player.farthest"></game-table>
         <!--玩家状态及手中卡牌-->
         <div class="stage_bottom" v-if="tableState && tableState.player">
             <div class="card-list">
@@ -54,6 +46,8 @@
 
     import Table from '../../core/table'
 
+    import gameTable from '../components/game-table'
+
     import {getUserInfo} from '../api'
 
     export default {
@@ -63,13 +57,12 @@
                 userInfo: null,
                 uid: '',
 
-                // todo remove
                 activeCardIndex: -1,
                 table: null,
-
                 movedMap: {}, //已移动的表格位置
             }
         },
+        components: {gameTable},
         computed: {
             tableState() {
                 return this.table ? this.table.getCurrentState(this.uid) : {}
@@ -86,7 +79,8 @@
             },
             rows() {
                 return this.tableState.rows
-            }
+            },
+
         },
         filters: {
             squareRender(item) {
@@ -119,29 +113,66 @@
                 let players = [player, robot]
 
                 let table = new Table()
+                table.setPlatform('client')
+
                 table.initPlayer(players)
                 table.startGame()
-
                 this.table = table
+
+
+                // table.on('cardLeave', ({pos, card}) => {
+                //     let [row, col] = pos
+                //     index--
+                //
+                //     let cell = table.basicRows[row][col]
+                //     cell.currentCard = null
+                //     table.basicRows[row].splice(col, 1, cell)
+                // })
+                // table.on('cardEnter', ({pos, card}) => {
+                //     let [row, col] = pos
+                //     index++
+                //
+                //     setTimeout(() => {
+                //         let cell = table.basicRows[row][col]
+                //         cell.currentCard = card
+                //         table.basicRows[row].splice(col, 1, cell)
+                //         // console.table(this.rows)
+                //     }, index * 1000)
+                // })
+
             },
 
             nextRound() {
                 console.log('对手回合')
                 this.table.newRound(this.rival)
 
+                let robot = this.rival
+                let cards = robot.currentCards.filter(card => card.cost < robot.mp)
+
+                // 初级机器人默认选择一张可放置的牌放在桌面[0,0]上
+                let cells = robot.getAvailableCells()
+                let cell = cells[Math.floor(Math.random() * cells.length - 1)]
+                if (cards && cards.length && cell) {
+                    try {
+                        robot.putCardToTable(cards[0], cell.pos)
+                    } catch (e) {
+                        console.log(e)
+                    }
+                }
+
                 setTimeout(() => {
                     console.log('选手回合')
                     this.table.newRound(this.player)
-                }, 200)
+                }, 5000)
             },
             chooseCard(index) {
                 this.activeCardIndex = index
             },
             clickSquare(row, col) {
-                console.log(this.player)
-
+                // 获取选择的卡片
                 let card = this.player.currentCards[this.activeCardIndex]
 
+                // 放入卡片
                 this.player.putCardToTable(card, [row, col])
             }
         }
@@ -149,117 +180,4 @@
 </script>
 
 <style scoped lang="scss">
-    .stage {
-        width: 80vw;
-        margin: 0 auto;
-
-        height: 100vh;
-        display: flex;
-        flex-direction: column;
-        &_top {
-            flex: 1;
-            background-color: #ccc;
-        }
-        &_bottom {
-            flex: 1;
-            background-color: blue;
-        }
-        &_map {
-            height: 80vw;
-            position: relative;
-            /*background-image: linear-gradient(#f5f5f5 1px, transparent 0), linear-gradient(90deg, #f5f5f5 1px, transparent 0);*/
-            /*background-size: 20vw 20vw, 20vw 20vw;*/
-        }
-        &_info {
-            padding-top: rem(20);
-            font-size: rem(30);
-            color: #fff;
-        }
-    }
-
-    .card-list {
-        display: flex;
-        height: rem(200);
-    }
-
-    .card {
-        width: rem(200);
-        height: 100%;
-        font-size: rem(24);
-        background-color: #999999;
-        border: 1px solid #000;
-
-        &:not(:first-child) {
-            transform: translateX(-20%);
-        }
-
-        &-on {
-            background-color: #fe6e6e;
-        }
-
-        &-disable {
-            background-color: #444;
-        }
-
-    }
-
-    .square {
-        width: 20vw;
-        height: 16vw;
-        float: left;
-
-        border-bottom: $baseborder;
-        border-left: $baseborder;
-        &:nth-of-type(4n+4) {
-            border-right: $baseborder;
-        }
-        &-disable {
-            background-color: #f8f8f8;
-        }
-        &-rival {
-            color: red;
-        }
-        &_inner {
-
-            width: 100%;
-            height: 100%;
-
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: rem(24);
-        }
-        &-cursor {
-            position: absolute;
-            left: 0;
-            top: 0;
-            background: red;
-        }
-    }
-
-    .next-round {
-        position: fixed;
-        right: 0;
-        bottom: 10vw;
-        width: rem(200);
-        height: rem(60);
-        line-height: rem(60);
-        background-color: coral;
-        font-size: rem(24);
-        text-align: center;
-        color: #fff;
-        &-disable {
-            background-color: #ccc;
-        }
-    }
-
-    .float-btn {
-        width: rem(100);
-        height: rem(100);
-        background-color: red;
-        position: fixed;
-        right: 0;
-        top: 0;
-        border-radius: 50%;
-    }
 </style>

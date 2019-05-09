@@ -4,7 +4,7 @@
 
 import cardModel from './cardModel'
 import Card from "./card";
-import Table, {userInfo} from "./table";
+import Table, {TableCell, userInfo} from "./table";
 
 class CardFactory {
     cardGroup: number[]
@@ -123,6 +123,23 @@ class Player {
         }
     }
 
+    // 获取当前可使用的牌
+    getAvailableCards(): Card[] {
+        return this.currentCards.filter(card => card.cost < this.mp)
+    }
+
+    // 获取当前可放置的位置
+    getAvailableCells(): TableCell[] {
+        let arr: TableCell[] = []
+        this.table._walkCells((cell: TableCell) => {
+            let pos = cell.pos
+            if (this.checkPosAvailable(pos)) {
+                arr.push(cell)
+            }
+        })
+        return arr
+    }
+
     // 抽牌，补充剩余的牌
     drawCards() {
         let leftNum = this.maxCardNum - this.currentCards.length
@@ -151,7 +168,8 @@ class Player {
     }
 
     // 检测玩家在某个单元格是否可放置
-    checkPosAvailable(pos: number[]) {
+    // [4,0]
+    checkPosAvailable(pos: number[]): boolean {
         let table = this.table
         let cell = table.getCellByPos(pos)
         let [row] = pos
@@ -172,9 +190,10 @@ class Player {
             throw new Error('未加入游戏')
         }
 
-        if (!this.isOwner) {
-            pos = [table.row - 1 - pos[0], pos[1]]
-        }
+        // 对手实际上是从上往下摆放的，在此处进行适配，从玩家角度来看都是从下往上摆放的
+        // if (!this.isOwner) {
+        //     pos = [table.row - 1 - pos[0], pos[1]]
+        // }
 
         if (table.currentPlayer !== this) {
             throw new Error('非当前选手的回合')
@@ -194,7 +213,7 @@ class Player {
 
             table.putCard(card, pos)
         } else {
-            throw new Error('当前位置无法放置')
+            throw new Error(`当前位置${pos}无法放置`)
         }
     }
 
