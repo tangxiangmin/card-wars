@@ -14,8 +14,10 @@
         <game-table
                 v-if="tableState.player"
                 :rows="rows"
+                :player="this.player"
                 :clickSquare="clickSquare"
                 :farthest="tableState.player.farthest"></game-table>
+
         <!--玩家状态及手中卡牌-->
         <div class="stage_bottom" v-if="tableState && tableState.player">
             <div class="card-list">
@@ -50,6 +52,26 @@
 
     import {getUserInfo} from '../api'
 
+    const robotRound = (robot) => {
+        let cards = robot.currentCards.filter(card => card.cost < robot.mp)
+
+        // 初级机器人默认选择一张可放置的牌放在桌面[0,0]上
+        let cells = robot.getAvailableCells()
+        let cell = cells[Math.floor(Math.random() * cells.length - 1)]
+        if (cards.length && cell) {
+            try {
+                let card = cards[0]
+                console.log(`对手出牌，card:${card && card.name}, pos: ${cell && cell.pos}`)
+                robot.putCardToTable(card, cell.pos)
+            } catch (e) {
+                console.log(e)
+            }
+        } else {
+
+            console.log(`对手无法出牌，可用card数量${cards.length}, 随机pos: ${cell && cell.pos}`)
+        }
+
+    }
     export default {
         name: "practice",
         data() {
@@ -118,47 +140,14 @@
                 table.initPlayer(players)
                 table.startGame()
                 this.table = table
-
-
-                // table.on('cardLeave', ({pos, card}) => {
-                //     let [row, col] = pos
-                //     index--
-                //
-                //     let cell = table.basicRows[row][col]
-                //     cell.currentCard = null
-                //     table.basicRows[row].splice(col, 1, cell)
-                // })
-                // table.on('cardEnter', ({pos, card}) => {
-                //     let [row, col] = pos
-                //     index++
-                //
-                //     setTimeout(() => {
-                //         let cell = table.basicRows[row][col]
-                //         cell.currentCard = card
-                //         table.basicRows[row].splice(col, 1, cell)
-                //         // console.table(this.rows)
-                //     }, index * 1000)
-                // })
-
             },
 
             nextRound() {
                 console.log('对手回合')
-                this.table.newRound(this.rival)
-
                 let robot = this.rival
-                let cards = robot.currentCards.filter(card => card.cost < robot.mp)
-
-                // 初级机器人默认选择一张可放置的牌放在桌面[0,0]上
-                let cells = robot.getAvailableCells()
-                let cell = cells[Math.floor(Math.random() * cells.length - 1)]
-                if (cards && cards.length && cell) {
-                    try {
-                        robot.putCardToTable(cards[0], cell.pos)
-                    } catch (e) {
-                        console.log(e)
-                    }
-                }
+                this.table.newRound(this.rival)
+                // 机器人回合，托管出牌
+                robotRound(robot)
 
                 setTimeout(() => {
                     console.log('选手回合')
@@ -173,7 +162,11 @@
                 let card = this.player.currentCards[this.activeCardIndex]
 
                 // 放入卡片
-                this.player.putCardToTable(card, [row, col])
+                try {
+                    this.player.putCardToTable(card, [row, col])
+                } catch (e) {
+                    this.$toast(e)
+                }
             }
         }
     }

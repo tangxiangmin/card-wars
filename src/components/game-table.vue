@@ -1,7 +1,7 @@
 <template>
     <div class="stage_map">
         <div v-for="(line, row) in rows" :key="row">
-            <div :class="{square: true, 'square-disable': row < farthest, 'square-rival' : item && item.isRival}"
+            <div :class="{square: true, 'square-disable': row < farthest, 'square-rival' : item.currentCard && item.currentCard.player !== player.uid}"
                  @click="clickSquare(row, col)"
                  v-for="(item, col) in line" :key="col">
 
@@ -21,7 +21,8 @@
         props: {
             rows: Array,
             farthest: Number,
-            clickSquare: Function
+            clickSquare: Function,
+            player: Object
         },
         filters: {
             squareRender(item) {
@@ -32,6 +33,9 @@
                 return `${currentCard.name}(${currentCard.hp})`
             },
         },
+        created(){
+            console.log(this.player)
+        }
     }
 </script>
 

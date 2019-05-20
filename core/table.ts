@@ -44,7 +44,8 @@ export class TableCell {
         if (currentCard) {
             // 当前位置包含友方卡牌
             if (currentCard.player === card.player) {
-                return isAlive
+                console.log(card, currentCard)
+                return false
             } else {
                 // 两张卡牌生命值抵消
                 let hp1 = card.hp
@@ -298,7 +299,6 @@ class Table extends EventEmitter {
         let step = card.dir
 
         let originCell = this.getCellByPos(card.pos)
-        originCell.clearCurrentCard()
 
         let [row, col] = card.pos
         let nextPos = [row + step, col]
@@ -309,18 +309,16 @@ class Table extends EventEmitter {
             // 抵达敌方阵营
             let rivalPlayer = this.getPlayerRival()
             rivalPlayer.underAttack(card)
+            originCell.clearCurrentCard()
             card.isDie = true
         } else {
-
             let nextCell = this.getCellByPos(nextPos)
-            let isAlive = nextCell.collapse(card)
-
-
-            if (isAlive) {
+            let canMove = nextCell.collapse(card)
+            if (canMove) {
+                originCell.clearCurrentCard()
                 nextCell.putCard(card)
             }
         }
-
     }
 
     // 新回合
