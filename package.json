@@ -32,7 +32,7 @@
     "@types/node": "^7.0.60",
     "@vue/cli-plugin-babel": "^3.3.0",
     "@vue/cli-plugin-eslint": "^3.3.0",
-    "@vue/cli-service": "^3.6.0",
+    "@vue/cli-service": "^5.0.8",
     "babel-eslint": "^10.0.1",
     "chai": "^4.2.0",
     "eslint": "^5.8.0",
